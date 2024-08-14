@@ -77,8 +77,6 @@ router
 			incomingData.init_data_raw
 		);
 
-		console.log('Expected: ' + expected_hash);
-		console.log('Calculated: ' + calculated_hash);
 		if (expected_hash !== calculated_hash) {
 			throw error(401, 'Unauthorized');
 		}
@@ -93,13 +91,11 @@ router
 		}
 
 		const token = generateSecret(16);
-		console.log('token: ', token);
 		if (!token) {
 			throw error(500, 'Failed to generate token');
 		}
 
 		const tokenHash = await sha256(token);
-
 		const results = await db.saveUserAndToken(
 			env.D1_DATABASE,
 			data.user,
@@ -107,8 +103,14 @@ router
 			tokenHash
 		);
 
+		if (results.some(result => !result.success)) {
+			throw error(500, 'Failed to save user and token to database');
+		}
+
 		const user = await db.getUser(env.D1_DATABASE, data.user.id);
-		console.log('user: ', user);
+		if (!user) {
+			throw error(500, 'Failed to retrieve user after saving');
+		}
 
 		return {
 			token,

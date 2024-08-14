@@ -109,37 +109,32 @@ export async function saveUserAndToken(
 	user: TelegramUser,
 	auth_timestamp: number,
 	tokenHash: Uint8Array
-): Promise<void> {
-	console.log('Attempting to save user:', JSON.stringify(user, null, 2));
-	console.log('Auth timestamp:', auth_timestamp);
-	console.log('Token hash:', tokenHash);
-
-	// First, try to insert or update the user
-	const userResult = await db
+): Promise<D1Result[]> {
+	const userStmt = db
 		.prepare(
 			`
-        INSERT INTO users (
-          created_date, updated_date, last_auth_timestamp, telegram_id,
-          is_bot, first_name, last_name, username, language_code,
-          is_premium, added_to_attachment_menu, allows_write_to_pm, photo_url
-        ) VALUES (
-          DATETIME('now'), DATETIME('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-        )
-        ON CONFLICT(telegram_id) DO UPDATE SET
-          updated_date = DATETIME('now'),
-          last_auth_timestamp = ?,
-          is_bot = ?,
-          first_name = ?,
-          last_name = ?,
-          username = ?,
-          language_code = ?,
-          is_premium = ?,
-          added_to_attachment_menu = ?,
-          allows_write_to_pm = ?,
-          photo_url = ?
-        WHERE ? > users.last_auth_timestamp
-        RETURNING id
-      `
+    INSERT INTO users (
+      created_date, updated_date, last_auth_timestamp, telegram_id,
+      is_bot, first_name, last_name, username, language_code,
+      is_premium, added_to_attachment_menu, allows_write_to_pm, photo_url
+    ) VALUES (
+      DATETIME('now'), DATETIME('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )
+    ON CONFLICT(telegram_id) DO UPDATE SET
+      updated_date = DATETIME('now'),
+      last_auth_timestamp = ?,
+      is_bot = ?,
+      first_name = ?,
+      last_name = ?,
+      username = ?,
+      language_code = ?,
+      is_premium = ?,
+      added_to_attachment_menu = ?,
+      allows_write_to_pm = ?,
+      photo_url = ?
+    WHERE ? > users.last_auth_timestamp
+    RETURNING id
+  `
 		)
 		.bind(
 			auth_timestamp,
@@ -165,27 +160,18 @@ export async function saveUserAndToken(
 			Number(user.allows_write_to_pm),
 			user.photo_url || null,
 			auth_timestamp // For the WHERE clause
-		)
-		.first<{ id: number }>();
+		);
 
-	console.log('User insert/update result:', userResult);
-
-	if (!userResult) {
-		console.log('Failed to insert or update user');
-	}
-
-	// Then, insert the token
-	const tokenResult = await db
+	const tokenStmt = db
 		.prepare(
 			`
-        INSERT INTO tokens (created_date, updated_date, expired_date, user_id, token_hash)
-        VALUES (DATETIME('now'), DATETIME('now'), DATETIME('now', '+1 day'), ?, ?)
-      `
+    INSERT INTO tokens (created_date, updated_date, expired_date, user_id, token_hash)
+    VALUES (DATETIME('now'), DATETIME('now'), DATETIME('now', '+1 day'),
+      (SELECT id FROM users WHERE telegram_id = ?), ?
+    )
+  `
 		)
-		.bind(userResult.id, tokenHash)
-		.run();
+		.bind(user.id, tokenHash);
 
-	console.log('Token insert result:', tokenResult);
-
-	console.log('User and token saved successfully');
+	return db.batch([userStmt, tokenStmt]);
 }
