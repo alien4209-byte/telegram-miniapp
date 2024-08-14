@@ -181,6 +181,6 @@ export async function saveUserAndToken(
 		return await db.batch([userStmt, tokenStmt]);
 	} catch (error) {
 		console.error('Error in saveUserAndToken:', error);
-		throw error; // Re-throw the error after logging
+		throw error;
 	}
 }

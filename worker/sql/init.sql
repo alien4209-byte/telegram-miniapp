@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
 	telegram_id integer UNIQUE NOT NULL,
 	username text,
 	is_bot integer,
-	first_mame text,
+	first_name text,
 	last_name text,
 	language_code text,
 	is_premium integer,
