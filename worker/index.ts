@@ -104,7 +104,7 @@ router
 			token,
 			start_param: data.start_param ?? null,
 			start_page: data.start_param ? 'calendar' : 'home',
-			user: user ? JSON.parse(JSON.stringify(user)) : null,
+			user,
 		} satisfies InitResponse;
 	})
 
