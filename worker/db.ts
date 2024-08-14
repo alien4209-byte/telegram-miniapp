@@ -1,6 +1,5 @@
 import { D1Database, D1Result } from '@cloudflare/workers-types';
 import { TelegramUser, User } from './types/types';
-import { error } from 'itty-router';
 
 export async function getSetting(db: D1Database, settingName: string): Promise<string | null> {
 	return await db

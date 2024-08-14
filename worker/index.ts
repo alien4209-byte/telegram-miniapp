@@ -77,6 +77,8 @@ router
 			incomingData.init_data_raw
 		);
 
+		console.log('Expected' + expected_hash);
+		console.log('Calculated' + calculated_hash);
 		if (expected_hash !== calculated_hash) {
 			throw error(401, 'Unauthorized');
 		}
@@ -91,6 +93,7 @@ router
 		}
 
 		const token = generateSecret(16);
+		console.log('token:', token);
 		if (!token) {
 			throw error(500, 'Failed to generate token');
 		}
