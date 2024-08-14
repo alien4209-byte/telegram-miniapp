@@ -7,4 +7,4 @@ main = "worker/index.ts"
 [[d1_databases]]
 binding = "D1_DATABASE"
 database_name = "telegram-calendar"
-database_id = "a32a89ef-41c8-453d-b4ec-7e1cfd6b71b5"
+database_id = "349f15eb-9f90-498a-a583-7d0a298f54ff"
