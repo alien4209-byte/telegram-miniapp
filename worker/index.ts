@@ -1,4 +1,7 @@
-import { AutoRouter, error, cors, IRequest } from 'itty-router';
+import { AutoRouter } from 'itty-router/AutoRouter';
+import { error } from 'itty-router/error';
+import { cors } from 'itty-router/cors';
+import type { IRequest } from 'itty-router';
 import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
@@ -13,15 +16,12 @@ import {
 	DatesRequest,
 } from '@/types/types';
 
-// Define the extended request type
 type ExtendedRequest = IRequest & App;
 
-// Create an AutoRouter with correct types
 const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 	base: '/',
 	before: [
 		async (request, env, ctx) => {
-			// Set up CORS handling
 			const { preflight, corsify } = cors({
 				origin: env.FRONTEND_URL,
 				allowMethods: ['GET', 'POST', 'OPTIONS'],
@@ -44,7 +44,7 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 				if (bot_name) {
 					await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
 				} else {
-					throw error(500, 'Failed to get bot username');
+					return error(500, 'Failed to get bot username');
 				}
 			}
 
@@ -52,7 +52,13 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 			Object.assign(request, { telegram, is_localhost, bot_name, env, ctx, corsify });
 		},
 	],
-	catch: error,
+	catch: err => {
+		console.error('Uncaught error:', err);
+		if (err instanceof Error) {
+			return error(500, err.message);
+		}
+		return error(500, 'An unexpected error occurred');
+	},
 	missing: () => error(404, 'Not Found'),
 	finally: [
 		(response, request) => {
@@ -64,13 +70,11 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 
 // Routes
 router
-	.get('/', () => 'This telegram bot is deployed correctly. No user-serviceable parts inside.')
-
 	.post('/miniApp/init', async ({ telegram, env, json }) => {
 		const incomingData = await json<IncomingInitData>();
 
 		if (typeof incomingData?.init_data_raw !== 'string') {
-			throw error(400, 'Invalid initDataRaw');
+			return error(400, 'Invalid initDataRaw');
 		}
 
 		const { expected_hash, calculated_hash, data } = await telegram.calculateHashes(
@@ -78,21 +82,21 @@ router
 		);
 
 		if (expected_hash !== calculated_hash) {
-			throw error(401, 'Unauthorized');
+			return error(401, 'Unauthorized');
 		}
 
 		const currentTime = Math.floor(Date.now() / 1000);
 		if (currentTime - data.auth_date > 600) {
-			throw error(400, 'Stale data, please restart the app');
+			return error(400, 'Stale data, please restart the app');
 		}
 
 		if (!data.user || typeof data.user.id !== 'number') {
-			throw error(400, 'Invalid user data');
+			return error(400, 'Invalid user data');
 		}
 
 		const token = generateSecret(16);
 		if (!token) {
-			throw error(500, 'Failed to generate token');
+			return error(500, 'Failed to generate token');
 		}
 
 		const tokenHash = await sha256(token);
@@ -104,12 +108,12 @@ router
 		);
 
 		if (results.some(result => !result.success)) {
-			throw error(500, 'Failed to save user and token to database');
+			return error(500, 'Failed to save user and token to database');
 		}
 
 		const user = await db.getUser(env.D1_DATABASE, data.user.id);
 		if (!user) {
-			throw error(500, 'Failed to retrieve user after saving');
+			return error(500, 'Failed to retrieve user after saving');
 		}
 
 		return {
@@ -120,16 +124,18 @@ router
 		} satisfies InitResponse;
 	})
 
+	.get('/', () => 'This telegram bot is deployed correctly. No user-serviceable parts inside.')
+
 	.get('/miniApp/me', async ({ env, headers }) => {
 		const suppliedToken = headers.get('Authorization')?.replace('Bearer ', '');
 		if (!suppliedToken) {
-			throw error(401, 'Unauthorized: No token provided');
+			return error(401, 'Unauthorized: No token provided');
 		}
 		const tokenHash = await sha256(suppliedToken);
 		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
 
 		if (user === null) {
-			throw error(401, 'Unauthorized');
+			return error(401, 'Unauthorized');
 		}
 
 		return { user };
@@ -140,7 +146,7 @@ router
 		const calendar = await db.getCalendarByRef(env.D1_DATABASE, ref);
 
 		if (calendar === null) {
-			throw error(404, 'Not found');
+			return error(404, 'Not found');
 		}
 
 		return { calendar: JSON.parse(calendar) };
@@ -149,25 +155,25 @@ router
 	.post('/miniApp/dates', async ({ telegram, env, bot_name, is_localhost, headers, ctx, json }) => {
 		const suppliedToken = headers.get('Authorization')?.replace('Bearer ', '');
 		if (!suppliedToken) {
-			throw error(401, 'Unauthorized: No token provided');
+			return error(401, 'Unauthorized: No token provided');
 		}
 		const tokenHash = await sha256(suppliedToken);
 		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
 
 		if (user === null) {
-			throw error(401, 'Unauthorized');
+			return error(401, 'Unauthorized');
 		}
 
 		const ref = generateSecret(8);
 		const { dates } = await json<DatesRequest>();
 
 		if (!dates || dates.length > 100) {
-			throw error(400, 'Invalid or too many dates');
+			return error(400, 'Invalid or too many dates');
 		}
 
 		for (const date of dates) {
 			if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-				throw error(400, 'Invalid date format');
+				return error(400, 'Invalid date format');
 			}
 		}
 
@@ -190,7 +196,7 @@ router
 		const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
 
 		if (telegramProvidedToken !== savedToken) {
-			throw error(401, 'Unauthorized');
+			return error(401, 'Unauthorized');
 		}
 
 		const messageJson = await json<TelegramUpdate>();
@@ -201,7 +207,7 @@ router
 
 	.get('/updateTelegramMessages', async ({ telegram, env, is_localhost, ctx }) => {
 		if (!is_localhost) {
-			throw error(403, 'This request is only supposed to be used locally');
+			return error(403, 'This request is only supposed to be used locally');
 		}
 
 		const lastUpdateId = await db.getLatestUpdateId(env.D1_DATABASE);
@@ -224,7 +230,7 @@ router
 
 	.post('/init', async ({ telegram, env, bot_name, headers, json }) => {
 		if (headers.get('Authorization') !== `Bearer ${env.INIT_SECRET}`) {
-			throw error(401, 'Unauthorized');
+			return error(401, 'Unauthorized');
 		}
 
 		let token = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
