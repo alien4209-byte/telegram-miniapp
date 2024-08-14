@@ -1,4 +1,4 @@
-import { D1Database } from '@cloudflare/workers-types';
+import { D1Database, ExecutionContext } from '@cloudflare/workers-types';
 import { Telegram } from '@/telegram';
 import type * as dbTypes from '@/types/dbTypes';
 export * from '@/types/dbTypes';
@@ -8,6 +8,7 @@ export interface App {
 	is_localhost: boolean;
 	bot_name: string | null;
 	env: Env;
+	ctx: ExecutionContext;
 }
 
 // Env interface to extend Cloudflare's Env

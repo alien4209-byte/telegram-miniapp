@@ -2,16 +2,19 @@ import { getGreetingMessage } from '@/locales/greetingMessages';
 import { getCalendarLinkMessage, getCalendarShareMessage } from '@/locales/calendarMessages';
 import { Telegram } from '@/telegram';
 import { App, LanguageTag } from '@/types/types';
+import { error } from 'itty-router';
 
 class MessageSender {
 	private botName: string;
 	private telegram: Telegram;
 	private language: LanguageTag;
+	private ctx: ExecutionContext;
 
 	constructor(app: App, language: LanguageTag = 'en') {
 		this.botName = app.bot_name ?? '';
 		this.telegram = app.telegram;
 		this.language = language;
+		this.ctx = app.ctx;
 	}
 
 	setLanguage(language: LanguageTag): void {
@@ -23,12 +26,16 @@ class MessageSender {
 		text: string,
 		reply_to_message_id?: number
 	): Promise<any> {
-		return await this.telegram.sendMessage(chatId, text, 'MarkdownV2', reply_to_message_id);
+		try {
+			return await this.telegram.sendMessage(chatId, text, 'MarkdownV2', reply_to_message_id);
+		} catch (err) {
+			throw error(500, 'Failed to send message');
+		}
 	}
 
 	async sendGreeting(chatId: number | string, replyToMessageId?: number): Promise<any> {
 		const message = getGreetingMessage(this.language, this.botName);
-		return await this.sendMessage(chatId, message, replyToMessageId);
+		return this.ctx.waitUntil(this.sendMessage(chatId, message, replyToMessageId));
 	}
 
 	async sendCalendarLink(
@@ -44,7 +51,7 @@ class MessageSender {
 			this.botName,
 			calendarRef
 		);
-		return await this.sendMessage(chatId, shareMessage);
+		return this.ctx.waitUntil(this.sendMessage(chatId, shareMessage));
 	}
 }
 

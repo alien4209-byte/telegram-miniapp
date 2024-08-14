@@ -1,5 +1,6 @@
 import { hmacSha256, hex } from '@/cryptoUtils';
 import { CalculateHashesResult } from '@/types/types';
+import { error } from 'itty-router';
 
 const TELEGRAM_API_BASE_URL = 'https://api.telegram.org/bot';
 
@@ -58,6 +59,11 @@ class TelegramAPI {
 			},
 			body: JSON.stringify(params),
 		});
+
+		if (!response.ok) {
+			throw error(response.status, 'Failed to get updates from Telegram API');
+		}
+
 		return response.json();
 	}
 
@@ -85,6 +91,11 @@ class TelegramAPI {
 			},
 			body: JSON.stringify(params),
 		});
+
+		if (!response.ok) {
+			throw error(response.status, 'Failed to send message via Telegram API');
+		}
+
 		return response.json();
 	}
 
@@ -103,6 +114,11 @@ class TelegramAPI {
 			},
 			body: JSON.stringify(params),
 		});
+
+		if (!response.ok) {
+			throw error(response.status, 'Failed to set webhook');
+		}
+
 		return response.json();
 	}
 
@@ -114,6 +130,11 @@ class TelegramAPI {
 				'Content-Type': 'application/json',
 			},
 		});
+
+		if (!response.ok) {
+			throw error(response.status, 'Failed to get bot information');
+		}
+
 		return response.json();
 	}
 }
