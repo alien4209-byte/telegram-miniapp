@@ -100,7 +100,17 @@ router
 
 		const tokenHash = await sha256(token);
 		console.log('tokenHash: ', tokenHash);
-		await db.saveUserAndToken(env.D1_DATABASE, data.user, data.auth_date, tokenHash);
+		const results = await db.saveUserAndToken(
+			env.D1_DATABASE,
+			data.user,
+			data.auth_date,
+			tokenHash
+		);
+
+		// If you need to check the results:
+		if (results.some(result => !result.success)) {
+			throw error(500, 'Failed to save user and token to database');
+		}
 
 		const user = await db.getUser(env.D1_DATABASE, data.user.id);
 		console.log('user: ', user);

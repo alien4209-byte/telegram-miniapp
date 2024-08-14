@@ -109,28 +109,32 @@ export async function saveUserAndToken(
 	user: TelegramUser,
 	auth_timestamp: number,
 	tokenHash: Uint8Array
-): Promise<void> {
-	await db.batch([
-		db.prepare('BEGIN'),
+): Promise<D1Result<unknown>[]> {
+	return db.batch([
 		db
 			.prepare(
 				`
-        INSERT INTO users (created_date, updated_date, last_auth_timestamp, telegram_id, is_bot, first_name, last_name, username, language_code, is_premium, added_to_attachment_menu, allows_write_to_pm, photo_url)
-        VALUES (DATETIME('now'), DATETIME('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(telegram_id) DO UPDATE SET
-          updated_date = DATETIME('now'),
-          last_auth_timestamp = COALESCE(excluded.last_auth_timestamp, last_auth_timestamp),
-          is_bot = COALESCE(excluded.is_bot, is_bot),
-          first_name = excluded.first_name,
-          last_name = excluded.last_name,
-          username = excluded.username,
-          language_code = COALESCE(excluded.language_code, language_code),
-          is_premium = COALESCE(excluded.is_premium, is_premium),
-          added_to_attachment_menu = COALESCE(excluded.added_to_attachment_menu, added_to_attachment_menu),
-          allows_write_to_pm = COALESCE(excluded.allows_write_to_pm, allows_write_to_pm),
-          photo_url = COALESCE(excluded.photo_url, photo_url)
-        WHERE excluded.last_auth_timestamp > users.last_auth_timestamp
-      `
+      INSERT INTO users (
+        created_date, updated_date, last_auth_timestamp, telegram_id,
+        is_bot, first_name, last_name, username, language_code,
+        is_premium, added_to_attachment_menu, allows_write_to_pm, photo_url
+      ) VALUES (
+        DATETIME('now'), DATETIME('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      )
+      ON CONFLICT(telegram_id) DO UPDATE SET
+        updated_date = DATETIME('now'),
+        last_auth_timestamp = ?,
+        is_bot = ?,
+        first_name = ?,
+        last_name = ?,
+        username = ?,
+        language_code = ?,
+        is_premium = ?,
+        added_to_attachment_menu = ?,
+        allows_write_to_pm = ?,
+        photo_url = ?
+      WHERE ? > users.last_auth_timestamp
+    `
 			)
 			.bind(
 				auth_timestamp,
@@ -143,16 +147,29 @@ export async function saveUserAndToken(
 				Number(user.is_premium),
 				Number(user.added_to_attachment_menu),
 				Number(user.allows_write_to_pm),
-				user.photo_url || null
+				user.photo_url || null,
+				// Repeat values for UPDATE
+				auth_timestamp,
+				Number(user.is_bot),
+				user.first_name,
+				user.last_name || null,
+				user.username || null,
+				user.language_code || null,
+				Number(user.is_premium),
+				Number(user.added_to_attachment_menu),
+				Number(user.allows_write_to_pm),
+				user.photo_url || null,
+				auth_timestamp // For the WHERE clause
 			),
 		db
 			.prepare(
 				`
-        INSERT INTO tokens (created_date, updated_date, expired_date, user_id, token_hash)
-        VALUES (DATETIME('now'), DATETIME('now'), DATETIME('now', '+1 day'), (SELECT id FROM users WHERE telegram_id = ?), ?)
-      `
+      INSERT INTO tokens (created_date, updated_date, expired_date, user_id, token_hash)
+      VALUES (DATETIME('now'), DATETIME('now'), DATETIME('now', '+1 day'),
+        (SELECT id FROM users WHERE telegram_id = ?), ?
+      )
+    `
 			)
 			.bind(user.id, tokenHash),
-		db.prepare('COMMIT'),
 	]);
 }
