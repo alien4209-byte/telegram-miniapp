@@ -1,11 +1,14 @@
 import { D1Database, D1Result } from '@cloudflare/workers-types';
-import { TelegramUser, User } from './types/types';
+import { TelegramUser } from './types/types';
+import * as dbTypes from './types/dbTypes';
 
 export async function getSetting(db: D1Database, settingName: string): Promise<string | null> {
-	return await db
+	const result = await db
 		.prepare('SELECT value FROM settings WHERE name = ?')
 		.bind(settingName)
-		.first('value');
+		.first<dbTypes.Setting>();
+
+	return result ? result.value : null;
 }
 
 export async function setSetting(
@@ -31,7 +34,7 @@ export async function setSetting(
 export async function getLatestUpdateId(db: D1Database): Promise<number> {
 	const result = await db
 		.prepare('SELECT update_id FROM messages ORDER BY update_id DESC LIMIT 1')
-		.first<{ update_id: string }>();
+		.first<dbTypes.Message>();
 
 	return result ? Number(result.update_id) : 0;
 }
@@ -52,17 +55,17 @@ export async function addMessage(
 		.run();
 }
 
-export async function getUser(db: D1Database, telegramId: number): Promise<User | null> {
+export async function getUser(db: D1Database, telegramId: number): Promise<dbTypes.User | null> {
 	return await db
 		.prepare('SELECT * FROM users WHERE telegram_id = ?')
 		.bind(telegramId)
-		.first<User>();
+		.first<dbTypes.User>();
 }
 
 export async function getUserByTokenHash(
 	db: D1Database,
 	tokenHash: Uint8Array
-): Promise<User | null> {
+): Promise<dbTypes.User | null> {
 	return await db
 		.prepare(
 			`
@@ -74,7 +77,7 @@ export async function getUserByTokenHash(
     `
 		)
 		.bind(tokenHash)
-		.first<User>();
+		.first<dbTypes.User>();
 }
 
 export async function saveCalendar(
@@ -98,10 +101,12 @@ export async function getCalendarByRef(
 	db: D1Database,
 	calendarRef: string
 ): Promise<string | null> {
-	return await db
+	const result = await db
 		.prepare('SELECT calendar_json FROM calendars WHERE calendar_ref = ?')
 		.bind(calendarRef)
-		.first('calendar_json');
+		.first<dbTypes.Calendar>();
+
+	return result ? result.calendar_json : null;
 }
 
 export async function saveUserAndToken(
