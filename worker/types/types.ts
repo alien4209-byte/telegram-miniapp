@@ -1,21 +1,21 @@
-import { Database } from '@/db';
+import { D1Database } from '@cloudflare/workers-types';
 import { Telegram } from '@/telegram';
 import type * as dbTypes from '@/types/dbTypes';
 export * from '@/types/dbTypes';
 
 export interface App {
 	telegram: Telegram;
-	db: Database;
-	cors_headers: Record<string, string>;
 	is_localhost: boolean;
 	bot_name: string | null;
+	params: { [key: string]: string };
+	env: Env;
 }
 
-// Update Env interface to extend Cloudflare's Env
-export interface Env extends Record<string, unknown> {
+// Env interface to extend Cloudflare's Env
+export interface Env {
 	TELEGRAM_BOT_TOKEN: string;
 	TELEGRAM_USE_TEST_API?: boolean;
-	D1_DATABASE: string;
+	D1_DATABASE: D1Database;
 	FRONTEND_URL: string;
 	INIT_SECRET: string;
 }
