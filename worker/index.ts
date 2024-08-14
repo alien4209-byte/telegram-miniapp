@@ -26,7 +26,7 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 				origin: env.FRONTEND_URL,
 				allowMethods: ['GET', 'POST', 'OPTIONS'],
 				allowHeaders: ['Content-Type', 'Authorization'],
-				maxAge: 86400, // Cache the preflight response for 24 hours
+				maxAge: 86400,
 			});
 
 			// Handle preflight requests
@@ -77,8 +77,8 @@ router
 			incomingData.init_data_raw
 		);
 
-		console.log('Expected' + expected_hash);
-		console.log('Calculated' + calculated_hash);
+		console.log('Expected: ' + expected_hash);
+		console.log('Calculated: ' + calculated_hash);
 		if (expected_hash !== calculated_hash) {
 			throw error(401, 'Unauthorized');
 		}
@@ -93,15 +93,17 @@ router
 		}
 
 		const token = generateSecret(16);
-		console.log('token:', token);
+		console.log('token: ', token);
 		if (!token) {
 			throw error(500, 'Failed to generate token');
 		}
 
 		const tokenHash = await sha256(token);
+		console.log('tokenHash: ', tokenHash);
 		await db.saveUserAndToken(env.D1_DATABASE, data.user, data.auth_date, tokenHash);
 
 		const user = await db.getUser(env.D1_DATABASE, data.user.id);
+		console.log('user: ', user);
 
 		return {
 			token,
