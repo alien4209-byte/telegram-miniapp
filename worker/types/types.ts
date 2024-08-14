@@ -7,7 +7,6 @@ export interface App {
 	telegram: Telegram;
 	is_localhost: boolean;
 	bot_name: string | null;
-	params: { [key: string]: string };
 	env: Env;
 }
 

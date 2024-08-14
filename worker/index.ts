@@ -34,7 +34,7 @@ const router = AutoRouter<IRequest & App, [Env, ExecutionContext]>({
 				if (bot_name) {
 					await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
 				} else {
-					console.error('Failed to get bot username');
+					throw new StatusError(500, 'Failed to get bot username');
 				}
 			}
 
@@ -42,10 +42,9 @@ const router = AutoRouter<IRequest & App, [Env, ExecutionContext]>({
 			Object.assign(request, { telegram, is_localhost, bot_name, env });
 		},
 	],
+	catch: error,
 	finally: [corsify],
-	// customize these options if needed
-	// format: (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } }),
-	// missing: () => error(404, 'Not Found'),
+	missing: () => error(404, 'Not Found'),
 });
 
 // Routes
@@ -119,7 +118,7 @@ router
 	})
 
 	.post('/miniApp/dates', async request => {
-		const { telegram, env, bot_name, is_localhost, params } = request;
+		const { telegram, env, bot_name, is_localhost } = request;
 		const suppliedToken = request.headers.get('Authorization')?.replace('Bearer ', '');
 		const tokenHash = await sha256(suppliedToken || '');
 		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
@@ -145,7 +144,7 @@ router
 		await db.saveCalendar(env.D1_DATABASE, jsonToSave, ref, user.id);
 
 		const messageSender = new MessageSender(
-			{ telegram, bot_name, is_localhost, env, params },
+			{ telegram, bot_name, is_localhost, env },
 			user.language_code
 		);
 		await messageSender.sendCalendarLink(user.telegram_id, user.first_name, ref);
