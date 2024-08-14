@@ -1,4 +1,4 @@
-import { Router, error, json, cors, StatusError } from 'itty-router';
+import { AutoRouter, error, cors, StatusError, IRequest } from 'itty-router';
 import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
@@ -18,8 +18,8 @@ import {
 // Set up CORS handling
 const { preflight, corsify } = cors();
 
-// Create a Router with custom types and configuration
-const router = Router<Request & App, [Env, ExecutionContext]>({
+// Create an AutoRouter with correct types
+const router = AutoRouter<IRequest & App, [Env, ExecutionContext]>({
 	base: '/',
 	before: [
 		preflight,
@@ -42,8 +42,10 @@ const router = Router<Request & App, [Env, ExecutionContext]>({
 			Object.assign(request, { telegram, is_localhost, bot_name, env });
 		},
 	],
-	catch: error,
-	finally: [corsify, json],
+	finally: [corsify],
+	// customize these options if needed
+	// format: (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } }),
+	// missing: () => error(404, 'Not Found'),
 });
 
 // Routes
@@ -205,8 +207,7 @@ router
 		const response = await telegram.setWebhook(`${externalUrl}/telegramMessage`, token);
 
 		return `Success! Bot Name: https://t.me/${bot_name}. Webhook status: ${JSON.stringify(response)}`;
-	})
+	});
 
-	.all('*', () => error(404));
-
+// Export the router
 export default router;
