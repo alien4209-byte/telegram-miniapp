@@ -1,4 +1,4 @@
-import { Router, error, cors } from 'itty-router';
+import { Router, error, cors, StatusError } from 'itty-router';
 import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
@@ -51,7 +51,7 @@ router
 		const incomingData = (await request.json()) as IncomingInitData;
 
 		if (typeof incomingData.init_data_raw !== 'string') {
-			throw error(400, 'Invalid initDataRaw');
+			throw new StatusError(400, 'Invalid initDataRaw');
 		}
 
 		const { expected_hash, calculated_hash, data } = await telegram.calculateHashes(
@@ -59,21 +59,21 @@ router
 		);
 
 		if (expected_hash !== calculated_hash) {
-			throw error(401, 'Unauthorized');
+			throw new StatusError(401, 'Unauthorized');
 		}
 
 		const currentTime = Math.floor(Date.now() / 1000);
 		if (currentTime - data.auth_date > 600) {
-			throw error(400, 'Stale data, please restart the app');
+			throw new StatusError(400, 'Stale data, please restart the app');
 		}
 
 		if (!data.user || typeof data.user.id !== 'number') {
-			throw error(400, 'Invalid user data');
+			throw new StatusError(400, 'Invalid user data');
 		}
 
 		const token = generateSecret(16);
 		if (!token) {
-			throw error(500, 'Failed to generate token');
+			throw new StatusError(500, 'Failed to generate token');
 		}
 
 		const tokenHash = await sha256(token);
@@ -94,7 +94,7 @@ router
 		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
 
 		if (user === null) {
-			throw error(401, 'Unauthorized');
+			throw new StatusError(401, 'Unauthorized');
 		}
 
 		return { user };
@@ -106,7 +106,7 @@ router
 		const calendar = await db.getCalendarByRef(env.D1_DATABASE, ref);
 
 		if (calendar === null) {
-			throw error(404, 'Not found');
+			throw new StatusError(404, 'Not found');
 		}
 
 		return { calendar: JSON.parse(calendar) };
@@ -119,19 +119,19 @@ router
 		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
 
 		if (user === null) {
-			throw error(401, 'Unauthorized');
+			throw new StatusError(401, 'Unauthorized');
 		}
 
 		const ref = generateSecret(8);
 		const { dates } = (await request.json()) as { dates: string[] };
 
 		if (dates.length > 100) {
-			throw error(400, 'Too many dates');
+			throw new StatusError(400, 'Too many dates');
 		}
 
 		for (const date of dates) {
 			if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-				throw error(400, 'Invalid date');
+				throw new StatusError(400, 'Invalid date');
 			}
 		}
 
@@ -153,7 +153,7 @@ router
 		const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
 
 		if (telegramProvidedToken !== savedToken) {
-			throw error(401, 'Unauthorized');
+			throw new StatusError(401, 'Unauthorized');
 		}
 
 		const messageJson = await request.json();
@@ -165,7 +165,7 @@ router
 	.get('/updateTelegramMessages', async request => {
 		const { telegram, env, is_localhost } = request;
 		if (!is_localhost) {
-			throw error(403, 'This request is only supposed to be used locally');
+			throw new StatusError(403, 'This request is only supposed to be used locally');
 		}
 
 		const lastUpdateId = await db.getLatestUpdateId(env.D1_DATABASE);
@@ -187,7 +187,7 @@ router
 	.post('/init', async request => {
 		const { telegram, env, bot_name } = request;
 		if (request.headers.get('Authorization') !== `Bearer ${env.INIT_SECRET}`) {
-			throw error(401, 'Unauthorized');
+			throw new StatusError(401, 'Unauthorized');
 		}
 
 		let token = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
@@ -214,8 +214,12 @@ export default {
 			.then(corsify)
 			.catch(err => {
 				console.error(err);
-				return err instanceof Error
-					? error(500, err.message)
-					: error(500, 'An unexpected error occurred');
+				if (err instanceof StatusError) {
+					return error(err.status, err.message);
+				} else if (err instanceof Error) {
+					return error(500, err.message);
+				} else {
+					return error(500, 'An unexpected error occurred');
+				}
 			}),
 };
