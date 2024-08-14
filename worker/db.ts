@@ -138,12 +138,11 @@ export async function saveUserAndToken(
       allows_write_to_pm = ?,
       photo_url = ?
     WHERE ? > users.last_auth_timestamp
-    RETURNING id
   `
 		)
 		.bind(
 			auth_timestamp,
-			user.id,
+			user.id, // This is telegram_id in the database
 			Number(user.is_bot),
 			user.first_name,
 			user.last_name || null,
@@ -178,5 +177,10 @@ export async function saveUserAndToken(
 		)
 		.bind(user.id, tokenHash);
 
-	return db.batch([userStmt, tokenStmt]);
+	try {
+		return await db.batch([userStmt, tokenStmt]);
+	} catch (error) {
+		console.error('Error in saveUserAndToken:', error);
+		throw error; // Re-throw the error after logging
+	}
 }
