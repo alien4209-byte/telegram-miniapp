@@ -1,4 +1,4 @@
-import { Router, error, cors, StatusError } from 'itty-router';
+import { Router, error, json, cors, StatusError } from 'itty-router';
 import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
@@ -18,32 +18,36 @@ import {
 // Set up CORS handling
 const { preflight, corsify } = cors();
 
-// Create a Router with custom types
-const router = Router<Request & App, [Env, ExecutionContext]>();
+// Create a Router with custom types and configuration
+const router = Router<Request & App, [Env, ExecutionContext]>({
+	base: '/',
+	before: [
+		preflight,
+		async (request, env: Env) => {
+			const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_USE_TEST_API);
+			const is_localhost = request.headers.get('Host')?.match(/^(localhost|127\.0\.0\.1)/) !== null;
 
-// Setup common app context
-router.all('*', async (request, env: Env) => {
-	const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_USE_TEST_API);
-	const is_localhost = request.headers.get('Host')?.match(/^(localhost|127\.0\.0\.1)/) !== null;
+			let bot_name = await db.getSetting(env.D1_DATABASE, 'bot_name');
+			if (!bot_name) {
+				const me = await telegram.getMe();
+				bot_name = me.result?.username ?? null;
+				if (bot_name) {
+					await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
+				} else {
+					console.error('Failed to get bot username');
+				}
+			}
 
-	let bot_name = await db.getSetting(env.D1_DATABASE, 'bot_name');
-	if (!bot_name) {
-		const me = await telegram.getMe();
-		bot_name = me.result?.username ?? null;
-		if (bot_name) {
-			await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
-		} else {
-			console.error('Failed to get bot username');
-		}
-	}
-
-	// Extend the request with our custom App properties
-	Object.assign(request, { telegram, is_localhost, bot_name, env });
+			// Extend the request with our custom App properties
+			Object.assign(request, { telegram, is_localhost, bot_name, env });
+		},
+	],
+	catch: error,
+	finally: [corsify, json],
 });
 
 // Routes
 router
-	.all('*', preflight)
 	.get('/', () => 'This telegram bot is deployed correctly. No user-serviceable parts inside.')
 
 	.post('/miniApp/init', async request => {
@@ -201,25 +205,8 @@ router
 		const response = await telegram.setWebhook(`${externalUrl}/telegramMessage`, token);
 
 		return `Success! Bot Name: https://t.me/${bot_name}. Webhook status: ${JSON.stringify(response)}`;
-	});
+	})
 
-// Error handling
-router.all('*', () => error(404));
+	.all('*', () => error(404));
 
-// Export the router with fetch method
-export default {
-	fetch: (request: Request, env: Env, ctx: ExecutionContext) =>
-		router
-			.handle(request, env, ctx)
-			.then(corsify)
-			.catch(err => {
-				console.error(err);
-				if (err instanceof StatusError) {
-					return error(err.status, err.message);
-				} else if (err instanceof Error) {
-					return error(500, err.message);
-				} else {
-					return error(500, 'An unexpected error occurred');
-				}
-			}),
-};
+export default router;
