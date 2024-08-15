@@ -218,15 +218,15 @@ export async function saveUserAndToken(
 		.bind(user.id, tokenHash);
 
 	try {
-		return await db
-			.prepare('BEGIN')
-			.bind()
-			.run()
-			.then(() => userStmt.run())
-			.then(() => tokenStmt.run())
-			.then(() => db.prepare('COMMIT').bind().run());
+		const results = await db.batch([userStmt, tokenStmt]);
+
+		// Check if all operations in the batch were successful
+		if (results.every(result => result.success)) {
+			return { success: true } as D1Result;
+		} else {
+			throw new Error('One or more operations in the batch failed');
+		}
 	} catch (e: any) {
-		await db.prepare('ROLLBACK').bind().run();
 		console.error({ message: e.message });
 		throw e;
 	}
