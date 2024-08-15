@@ -6,7 +6,7 @@ import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
 import { MessageSender } from '@/messageSender';
-import { generateSecret, sha256 } from '@/cryptoUtils';
+import { generateSecret, sha256, generateReference } from '@/cryptoUtils';
 import {
 	App,
 	Env,
@@ -100,7 +100,7 @@ router
 			return error(400, 'Invalid user data: missing id or first_name');
 		}
 
-		const token = generateSecret(16);
+		const token = generateSecret(32);
 		if (!token) {
 			return error(500, 'Failed to generate token');
 		}
@@ -169,7 +169,7 @@ router
 			return error(401, 'Unauthorized');
 		}
 
-		const ref = generateSecret(8);
+		const ref = generateReference(8);
 		const { dates } = await json<DatesRequest>();
 
 		if (!dates || dates.length > 100) {

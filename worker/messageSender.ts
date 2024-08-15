@@ -33,9 +33,11 @@ class MessageSender {
 		}
 	}
 
-	async sendGreeting(chatId: number | string, replyToMessageId?: number): Promise<any> {
+	async sendGreeting(chatId: number | string, replyToMessageId?: number): Promise<void> {
 		const message = getGreetingMessage(this.language, this.botName);
-		return this.ctx.waitUntil(this.sendMessage(chatId, message, replyToMessageId));
+		const sendPromise = this.sendMessage(chatId, message, replyToMessageId);
+		this.ctx.waitUntil(sendPromise);
+		// allow the greeting to be sent in the background
 	}
 
 	async sendCalendarLink(

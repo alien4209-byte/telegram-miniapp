@@ -74,26 +74,24 @@ class TelegramAPI {
 		reply_to_message_id?: number
 	): Promise<any> {
 		const url = `${this.apiBaseUrl}sendMessage`;
-		const params: any = {
+		const body = JSON.stringify({
 			chat_id: chatId,
 			text: text,
-		};
-		if (parse_mode) {
-			params.parse_mode = parse_mode;
-		}
-		if (reply_to_message_id) {
-			params.reply_to_message_id = reply_to_message_id;
-		}
+			parse_mode: parse_mode,
+			reply_to_message_id: reply_to_message_id,
+		});
+
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify(params),
+			body: body,
 		});
 
 		if (!response.ok) {
-			throw error(response.status, 'Failed to send message via Telegram API');
+			const errorData = await response.json();
+			throw new Error(`Failed to send message: ${errorData.description}`);
 		}
 
 		return response.json();
