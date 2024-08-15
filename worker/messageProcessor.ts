@@ -1,6 +1,6 @@
 import { MessageSender } from '@/messageSender';
 import { App, TelegramMessage, TelegramUpdate } from '@/types/types';
-import * as db from '@/db'; // Import the db functions
+import * as db from '@/db';
 
 const processMessage = async (json: TelegramUpdate, app: App): Promise<string> => {
 	const { telegram, env, ctx } = app;

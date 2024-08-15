@@ -42,7 +42,10 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 				const me = await telegram.getMe();
 				bot_name = me.result?.username ?? null;
 				if (bot_name) {
-					await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
+					const result = await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
+					if (!result.success) {
+						return error(500, 'Failed to set setting');
+					}
 				} else {
 					return error(500, 'Failed to get bot username');
 				}
@@ -68,7 +71,6 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 	],
 });
 
-// Routes
 router
 	.post('/miniApp/init', async ({ telegram, env, json }) => {
 		const incomingData = await json<IncomingInitData>();
@@ -90,8 +92,12 @@ router
 			return error(400, 'Stale data, please restart the app');
 		}
 
-		if (!data.user || typeof data.user.id !== 'number') {
-			return error(400, 'Invalid user data');
+		if (
+			!data.user ||
+			typeof data.user.id !== 'number' ||
+			typeof data.user.first_name !== 'string'
+		) {
+			return error(400, 'Invalid user data: missing id or first_name');
 		}
 
 		const token = generateSecret(16);
@@ -100,19 +106,18 @@ router
 		}
 
 		const tokenHash = await sha256(token);
-		const results = await db.saveUserAndToken(
-			env.D1_DATABASE,
-			data.user,
-			data.auth_date,
-			tokenHash
-		);
+		if (!tokenHash) {
+			return error(500, 'Failed to generate tokenHash');
+		}
 
-		if (results.some(result => !result.success)) {
+		const result = await db.saveUserAndToken(env.D1_DATABASE, data.user, data.auth_date, tokenHash);
+
+		if (!result.success) {
 			return error(500, 'Failed to save user and token to database');
 		}
 
 		const user = await db.getUser(env.D1_DATABASE, data.user.id);
-		if (!user) {
+		if (user === null) {
 			return error(500, 'Failed to retrieve user after saving');
 		}
 
@@ -146,7 +151,7 @@ router
 		const calendar = await db.getCalendarByRef(env.D1_DATABASE, ref);
 
 		if (calendar === null) {
-			return error(404, 'Not found');
+			return error(404, 'Calendar not found');
 		}
 
 		return { calendar: JSON.parse(calendar) };
@@ -178,7 +183,10 @@ router
 		}
 
 		const jsonToSave = JSON.stringify({ dates });
-		await db.saveCalendar(env.D1_DATABASE, jsonToSave, ref, user.id);
+		const result = await db.saveCalendar(env.D1_DATABASE, jsonToSave, ref, user.id);
+		if (!result.success) {
+			return error(500, 'Failed to save calendar');
+		}
 
 		const messageSender = new MessageSender(
 			{ telegram, is_localhost, bot_name, env, ctx },
@@ -194,7 +202,9 @@ router
 	.post('/telegramMessage', async ({ env, headers, json }) => {
 		const telegramProvidedToken = headers.get('X-Telegram-Bot-Api-Secret-Token');
 		const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
-
+		if (savedToken === null) {
+			return error(500, 'Token not found');
+		}
 		if (telegramProvidedToken !== savedToken) {
 			return error(401, 'Unauthorized');
 		}
@@ -237,7 +247,10 @@ router
 
 		if (token === null) {
 			token = crypto.getRandomValues(new Uint8Array(16)).join('');
-			await db.setSetting(env.D1_DATABASE, 'telegram_security_code', token);
+			const result = await db.setSetting(env.D1_DATABASE, 'telegram_security_code', token);
+			if (!result.success) {
+				return error(500, 'Failed to set setting');
+			}
 		}
 
 		const { externalUrl } = await json<{ externalUrl: string }>();
