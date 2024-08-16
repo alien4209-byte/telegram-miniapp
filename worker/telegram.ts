@@ -14,35 +14,41 @@ class TelegramAPI {
 		this.apiBaseUrl = `${TELEGRAM_API_BASE_URL}${token}/${testApiAddendum}`;
 	}
 
-	async calculateHashes(initData: string): Promise<{
-		expected_hash: string;
-		calculated_hash: string;
-		data: CalculateHashesResult['data'];
-	}> {
+	async calculateHashes(initData: string): Promise<CalculateHashesResult> {
 		const urlParams = new URLSearchParams(initData);
 		const expected_hash = urlParams.get('hash') || '';
 		urlParams.delete('hash');
 		urlParams.sort();
 
-		const dataCheckString = Array.from(urlParams.entries())
+		const dataCheckString = [...(urlParams as unknown as Iterable<[string, string]>)]
 			.map(([key, value]) => `${key}=${value}`)
 			.join('\n');
 
-		const data: any = Object.fromEntries(urlParams);
-		['user', 'receiver', 'chat'].forEach(key => {
-			if (data[key]) {
+		const data: Record<string, any> = {};
+
+		urlParams.forEach((value, key) => {
+			if (['user', 'receiver', 'chat'].includes(key)) {
 				try {
-					data[key] = JSON.parse(data[key]);
+					data[key] = JSON.parse(value);
 				} catch (error) {
 					console.error(`Failed to parse ${key}:`, error);
+					data[key] = value;
 				}
+			} else if (key === 'auth_date') {
+				data[key] = parseInt(value, 10);
+			} else {
+				data[key] = value;
 			}
 		});
 
 		const secretKey = await hmacSha256(this.token, 'WebAppData');
 		const calculated_hash = hex(await hmacSha256(dataCheckString, secretKey));
 
-		return { expected_hash, calculated_hash, data };
+		return {
+			expected_hash,
+			calculated_hash,
+			data: data as CalculateHashesResult['data'],
+		};
 	}
 
 	async getUpdates(lastUpdateId?: number): Promise<any> {

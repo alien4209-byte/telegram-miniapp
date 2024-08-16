@@ -34,13 +34,10 @@ class MessageSender {
 	}
 
 	async sendGreeting(chatId: number | string, replyToMessageId?: number): Promise<void> {
-		console.log('Sending greeting');
 		const message = getGreetingMessage(this.language, this.botName);
 		try {
 			await this.sendMessage(chatId, message, replyToMessageId);
-			console.log('Greeting sent successfully');
 		} catch (error) {
-			console.error('Error sending greeting:', error);
 			throw error;
 		}
 	}
