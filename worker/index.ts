@@ -210,6 +210,7 @@ router
 		}
 
 		const messageJson = await json<TelegramUpdate>();
+		console.log('messageJson: ' + messageJson);
 		await processMessage(messageJson, { env } as App);
 
 		return 'Success';

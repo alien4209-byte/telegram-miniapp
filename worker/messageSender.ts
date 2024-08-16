@@ -34,10 +34,15 @@ class MessageSender {
 	}
 
 	async sendGreeting(chatId: number | string, replyToMessageId?: number): Promise<void> {
+		console.log('Sending greeting');
 		const message = getGreetingMessage(this.language, this.botName);
-		const sendPromise = this.sendMessage(chatId, message, replyToMessageId);
-		this.ctx.waitUntil(sendPromise);
-		// allow the greeting to be sent in the background
+		try {
+			await this.sendMessage(chatId, message, replyToMessageId);
+			console.log('Greeting sent successfully');
+		} catch (error) {
+			console.error('Error sending greeting:', error);
+			throw error;
+		}
 	}
 
 	async sendCalendarLink(

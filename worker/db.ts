@@ -89,7 +89,7 @@ export async function getUser(db: D1Database, telegramId: number): Promise<dbTyp
 
 export async function getUserByTokenHash(
 	db: D1Database,
-	tokenHash: Uint8Array
+	tokenHash: String
 ): Promise<dbTypes.User | null> {
 	try {
 		return await db
@@ -153,7 +153,7 @@ export async function saveUserAndToken(
 	db: D1Database,
 	user: TelegramUser,
 	auth_timestamp: number,
-	tokenHash: Uint8Array
+	tokenHash: String
 ): Promise<D1Result> {
 	const userStmt = db
 		.prepare(
