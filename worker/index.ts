@@ -6,7 +6,7 @@ import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
 import { MessageSender } from '@/messageSender';
-import { generateSecret, sha256, generateReference } from '@/cryptoUtils';
+import { generateSecret, sha256, generateReference } from '@/utils/crypto';
 import {
 	App,
 	Env,
@@ -199,22 +199,34 @@ router
 		return { user };
 	})
 
-	.post('/telegramMessage', async ({ env, headers, json }) => {
-		const telegramProvidedToken = headers.get('X-Telegram-Bot-Api-Secret-Token');
-		const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
-		if (savedToken === null) {
-			return error(500, 'Token not found');
-		}
-		if (telegramProvidedToken !== savedToken) {
-			return error(401, 'Unauthorized');
-		}
+	.post(
+		'/telegramMessage',
+		async ({ env, headers, json, telegram, is_localhost, bot_name, ctx }) => {
+			const telegramProvidedToken = headers.get('X-Telegram-Bot-Api-Secret-Token');
+			const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
+			if (savedToken === null) {
+				return error(500, 'Token not found');
+			}
+			if (telegramProvidedToken !== savedToken) {
+				return error(401, 'Unauthorized');
+			}
 
-		const messageJson = await json<TelegramUpdate>();
-		console.log('messageJson: ' + messageJson);
-		await processMessage(messageJson, { env } as App);
+			const messageJson = await json<TelegramUpdate>();
+			console.log('messageJson:', JSON.stringify(messageJson));
 
-		return 'Success';
-	})
+			const app: App = {
+				telegram,
+				is_localhost,
+				bot_name,
+				env,
+				ctx,
+			};
+
+			await processMessage(messageJson, app);
+
+			return 'Success';
+		}
+	)
 
 	.get('/updateTelegramMessages', async ({ telegram, env, is_localhost, ctx }) => {
 		if (!is_localhost) {

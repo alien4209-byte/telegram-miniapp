@@ -1,4 +1,4 @@
-import { hmacSha256, hex } from '@/cryptoUtils';
+import { hmacSha256, hex } from '@/utils/crypto';
 import { CalculateHashesResult } from '@/types/types';
 import { error } from 'itty-router';
 
