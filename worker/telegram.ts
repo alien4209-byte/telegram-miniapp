@@ -96,8 +96,7 @@ class TelegramAPI {
 		});
 
 		if (!response.ok) {
-			const errorData = await response.json();
-			throw new Error(`Failed to send message: ${errorData.description}`);
+			throw new Error('Failed to send message');
 		}
 
 		return response.json();
