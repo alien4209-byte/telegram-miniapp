@@ -57,7 +57,6 @@ class TelegramAPI {
 		if (lastUpdateId) {
 			params.offset = lastUpdateId + 1;
 		}
-
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: {
@@ -65,11 +64,9 @@ class TelegramAPI {
 			},
 			body: JSON.stringify(params),
 		});
-
 		if (!response.ok) {
 			throw error(response.status, 'Failed to get updates from Telegram API');
 		}
-
 		return response.json();
 	}
 
@@ -86,7 +83,6 @@ class TelegramAPI {
 			parse_mode: parse_mode,
 			reply_to_message_id: reply_to_message_id,
 		});
-
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: {
@@ -94,11 +90,9 @@ class TelegramAPI {
 			},
 			body: body,
 		});
-
 		if (!response.ok) {
-			throw new Error('Failed to send message');
+			throw error(response.status, 'Failed to send message');
 		}
-
 		return response.json();
 	}
 
@@ -117,11 +111,9 @@ class TelegramAPI {
 			},
 			body: JSON.stringify(params),
 		});
-
 		if (!response.ok) {
 			throw error(response.status, 'Failed to set webhook');
 		}
-
 		return response.json();
 	}
 
@@ -133,11 +125,9 @@ class TelegramAPI {
 				'Content-Type': 'application/json',
 			},
 		});
-
 		if (!response.ok) {
 			throw error(response.status, 'Failed to get bot information');
 		}
-
 		return response.json();
 	}
 }
