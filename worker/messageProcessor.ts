@@ -1,5 +1,5 @@
-import { MessageSender } from '@/messageSender';
-import { App, TelegramUpdate } from '@/types/types';
+import { sendGreeting } from '@/messageSender';
+import { App, LanguageTag, TelegramUpdate } from '@/types/types';
 import * as db from '@/db';
 
 const processMessage = async (json: TelegramUpdate, app: App): Promise<string> => {
@@ -19,10 +19,14 @@ const processMessage = async (json: TelegramUpdate, app: App): Promise<string> =
 		const messageToSave = JSON.stringify(json, null, 2);
 		await db.addMessage(env.D1_DATABASE, messageToSave, json.update_id);
 
-		const messageSender = new MessageSender(app, languageCode);
-
 		if (json.message.text === '/start') {
-			const sendingPromise = messageSender.sendGreeting(chatId, replyToMessageId);
+			const sendingPromise = sendGreeting(
+				app.telegram,
+				languageCode as LanguageTag,
+				app.bot_name,
+				chatId,
+				replyToMessageId
+			);
 			ctx.waitUntil(sendingPromise);
 			return 'Greeting sent';
 		}

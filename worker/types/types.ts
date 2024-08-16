@@ -6,7 +6,7 @@ export * from '@/types/dbTypes';
 export interface App {
 	telegram: Telegram;
 	is_localhost: boolean;
-	bot_name: string | null;
+	bot_name: string;
 	env: Env;
 	ctx: ExecutionContext;
 }

@@ -5,7 +5,7 @@ import type { IRequest } from 'itty-router';
 import { Telegram } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
-import { MessageSender } from '@/messageSender';
+import { sendCalendarLink } from '@/messageSender';
 import { generateSecret, sha256, generateReference } from '@/utils/crypto';
 import {
 	App,
@@ -14,6 +14,7 @@ import {
 	InitResponse,
 	IncomingInitData,
 	DatesRequest,
+	LanguageTag,
 } from '@/types/types';
 
 type ExtendedRequest = IRequest & App;
@@ -188,13 +189,17 @@ router
 			return error(500, 'Failed to save calendar');
 		}
 
-		const messageSender = new MessageSender(
-			{ telegram, is_localhost, bot_name, env, ctx },
-			user.language_code
+		ctx.waitUntil(
+			sendCalendarLink(
+				telegram,
+				user.language_code as LanguageTag,
+				bot_name,
+				ctx,
+				user.telegram_id,
+				user.first_name,
+				ref
+			)
 		);
-
-		// Use Cloudflare Workers' ExecutionContext for background processing
-		ctx.waitUntil(messageSender.sendCalendarLink(user.telegram_id, user.first_name, ref));
 
 		return { user };
 	})
