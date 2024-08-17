@@ -1,10 +1,10 @@
 import { D1Database, ExecutionContext } from '@cloudflare/workers-types';
-import { Telegram } from '@/telegram';
+import { TelegramConfig } from '@/telegram';
 import type * as dbTypes from '@/types/dbTypes';
 export * from '@/types/dbTypes';
 
 export interface App {
-	telegram: Telegram;
+	telegramConfig: TelegramConfig;
 	is_localhost: boolean;
 	bot_name: string;
 	env: Env;

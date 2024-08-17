@@ -1,24 +1,11 @@
 import { getGreetingMessage } from '@/locales/greetingMessages';
 import { getCalendarLinkMessage, getCalendarShareMessage } from '@/locales/calendarMessages';
-import { Telegram } from '@/telegram';
+import { TelegramConfig, sendMessage } from '@/telegram';
 import { LanguageTag } from '@/types/types';
 import { error } from 'itty-router';
 
-async function sendMessage(
-	telegram: Telegram,
-	chatId: number | string,
-	text: string,
-	reply_to_message_id?: number
-): Promise<any> {
-	try {
-		return await telegram.sendMessage(chatId, text, 'MarkdownV2', reply_to_message_id);
-	} catch (err) {
-		throw error(500, 'Failed to send message');
-	}
-}
-
 export async function sendGreeting(
-	telegram: Telegram,
+	telegramConfig: TelegramConfig,
 	language: LanguageTag,
 	bot_name: string,
 	chatId: number | string,
@@ -26,14 +13,14 @@ export async function sendGreeting(
 ): Promise<void> {
 	const message = getGreetingMessage(language, bot_name);
 	try {
-		await sendMessage(telegram, chatId, message, replyToMessageId);
-	} catch (error) {
-		throw error;
+		await sendMessage(telegramConfig, chatId, message, 'MarkdownV2', replyToMessageId);
+	} catch (err) {
+		throw error(500, 'Failed to send greeting message');
 	}
 }
 
 export async function sendInfo(
-	telegram: Telegram,
+	telegramConfig: TelegramConfig,
 	language: LanguageTag,
 	bot_name: string,
 	chatId: number | string,
@@ -41,14 +28,14 @@ export async function sendInfo(
 ): Promise<void> {
 	const message = getGreetingMessage(language, bot_name);
 	try {
-		await sendMessage(telegram, chatId, message, replyToMessageId);
-	} catch (error) {
-		throw error;
+		await sendMessage(telegramConfig, chatId, message, 'MarkdownV2', replyToMessageId);
+	} catch (err) {
+		throw error(500, 'Failed to send info message');
 	}
 }
 
 export async function sendCalendarLink(
-	telegram: Telegram,
+	telegramConfig: TelegramConfig,
 	language: LanguageTag,
 	bot_name: string,
 	ctx: ExecutionContext,
@@ -57,7 +44,11 @@ export async function sendCalendarLink(
 	calendarRef: string
 ): Promise<void> {
 	const linkMessage = getCalendarLinkMessage(language);
-	await sendMessage(telegram, chatId, linkMessage);
-	const shareMessage = getCalendarShareMessage(language, userName, bot_name, calendarRef);
-	ctx.waitUntil(sendMessage(telegram, chatId, shareMessage));
+	try {
+		await sendMessage(telegramConfig, chatId, linkMessage, 'MarkdownV2');
+		const shareMessage = getCalendarShareMessage(language, userName, bot_name, calendarRef);
+		ctx.waitUntil(sendMessage(telegramConfig, chatId, shareMessage, 'MarkdownV2'));
+	} catch (err) {
+		throw error(500, 'Failed to send calendar link message');
+	}
 }

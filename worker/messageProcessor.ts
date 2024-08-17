@@ -25,7 +25,7 @@ const processMessage = async (json: TelegramUpdate, app: App): Promise<string> =
 			case '/start':
 				ctx.waitUntil(
 					sendGreeting(
-						app.telegram,
+						app.telegramConfig,
 						languageCode as LanguageTag,
 						app.bot_name,
 						chatId,
@@ -37,7 +37,7 @@ const processMessage = async (json: TelegramUpdate, app: App): Promise<string> =
 			case '/info':
 				ctx.waitUntil(
 					sendGreeting(
-						app.telegram,
+						app.telegramConfig,
 						languageCode as LanguageTag,
 						app.bot_name,
 						chatId,

@@ -2,7 +2,7 @@ import { AutoRouter } from 'itty-router/AutoRouter';
 import { error } from 'itty-router/error';
 import { cors } from 'itty-router/cors';
 import type { IRequest } from 'itty-router';
-import { Telegram } from '@/telegram';
+import { calculateHashes, getUpdates, sendMessage, setWebhook, getMe } from '@/telegram';
 import * as db from '@/db';
 import { processMessage } from '@/messageProcessor';
 import { sendCalendarLink } from '@/messageSender';
@@ -35,12 +35,15 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 				return preflight(request);
 			}
 
-			const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_USE_TEST_API);
+			const telegramConfig = {
+				token: env.TELEGRAM_BOT_TOKEN,
+				useTestApi: env.TELEGRAM_USE_TEST_API,
+			};
 			const is_localhost = request.headers.get('Host')?.match(/^(localhost|127\.0\.0\.1)/) !== null;
 
 			let bot_name = await db.getSetting(env.D1_DATABASE, 'bot_name');
 			if (!bot_name) {
-				const me = await telegram.getMe();
+				const me = await getMe(telegramConfig);
 				bot_name = me.result?.username ?? null;
 				if (bot_name) {
 					const result = await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
@@ -53,7 +56,7 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 			}
 
 			// Extend the request with our custom App properties
-			Object.assign(request, { telegram, is_localhost, bot_name, env, ctx, corsify });
+			Object.assign(request, { telegramConfig, is_localhost, bot_name, env, ctx, corsify });
 		},
 	],
 	catch: err => {
@@ -73,14 +76,15 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 });
 
 router
-	.post('/miniApp/init', async ({ telegram, env, json }) => {
+	.post('/miniApp/init', async ({ telegramConfig, env, json }) => {
 		const incomingData = await json<IncomingInitData>();
 
 		if (typeof incomingData?.init_data_raw !== 'string') {
 			return error(400, 'Invalid initDataRaw');
 		}
 
-		const { expected_hash, calculated_hash, data } = await telegram.calculateHashes(
+		const { expected_hash, calculated_hash, data } = await calculateHashes(
+			telegramConfig,
 			incomingData.init_data_raw
 		);
 
@@ -158,55 +162,58 @@ router
 		return { calendar: JSON.parse(calendar) };
 	})
 
-	.post('/miniApp/dates', async ({ telegram, env, bot_name, is_localhost, headers, ctx, json }) => {
-		const suppliedToken = headers.get('Authorization')?.replace('Bearer ', '');
-		if (!suppliedToken) {
-			return error(401, 'Unauthorized: No token provided');
-		}
-		const tokenHash = await sha256(suppliedToken);
-		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
-
-		if (user === null) {
-			return error(401, 'Unauthorized');
-		}
-
-		const ref = generateReference(8);
-		const { dates } = await json<DatesRequest>();
-
-		if (!dates || dates.length > 100) {
-			return error(400, 'Invalid or too many dates');
-		}
-
-		for (const date of dates) {
-			if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-				return error(400, 'Invalid date format');
+	.post(
+		'/miniApp/dates',
+		async ({ telegramConfig, env, bot_name, is_localhost, headers, ctx, json }) => {
+			const suppliedToken = headers.get('Authorization')?.replace('Bearer ', '');
+			if (!suppliedToken) {
+				return error(401, 'Unauthorized: No token provided');
 			}
+			const tokenHash = await sha256(suppliedToken);
+			const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
+
+			if (user === null) {
+				return error(401, 'Unauthorized');
+			}
+
+			const ref = generateReference(8);
+			const { dates } = await json<DatesRequest>();
+
+			if (!dates || dates.length > 100) {
+				return error(400, 'Invalid or too many dates');
+			}
+
+			for (const date of dates) {
+				if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+					return error(400, 'Invalid date format');
+				}
+			}
+
+			const jsonToSave = JSON.stringify({ dates });
+			const result = await db.saveCalendar(env.D1_DATABASE, jsonToSave, ref, user.id);
+			if (!result.success) {
+				return error(500, 'Failed to save calendar');
+			}
+
+			ctx.waitUntil(
+				sendCalendarLink(
+					telegramConfig,
+					user.language_code as LanguageTag,
+					bot_name,
+					ctx,
+					user.telegram_id,
+					user.first_name,
+					ref
+				)
+			);
+
+			return { user };
 		}
-
-		const jsonToSave = JSON.stringify({ dates });
-		const result = await db.saveCalendar(env.D1_DATABASE, jsonToSave, ref, user.id);
-		if (!result.success) {
-			return error(500, 'Failed to save calendar');
-		}
-
-		ctx.waitUntil(
-			sendCalendarLink(
-				telegram,
-				user.language_code as LanguageTag,
-				bot_name,
-				ctx,
-				user.telegram_id,
-				user.first_name,
-				ref
-			)
-		);
-
-		return { user };
-	})
+	)
 
 	.post(
 		'/telegramMessage',
-		async ({ env, headers, json, telegram, is_localhost, bot_name, ctx }) => {
+		async ({ env, headers, json, telegramConfig, is_localhost, bot_name, ctx }) => {
 			const telegramProvidedToken = headers.get('X-Telegram-Bot-Api-Secret-Token');
 			const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
 			if (savedToken === null) {
@@ -220,7 +227,7 @@ router
 			console.log('messageJson:', JSON.stringify(messageJson));
 
 			const app: App = {
-				telegram,
+				telegramConfig,
 				is_localhost,
 				bot_name,
 				env,
@@ -233,19 +240,19 @@ router
 		}
 	)
 
-	.get('/updateTelegramMessages', async ({ telegram, env, is_localhost, ctx }) => {
+	.get('/updateTelegramMessages', async ({ telegramConfig, env, is_localhost, ctx }) => {
 		if (!is_localhost) {
 			return error(403, 'This request is only supposed to be used locally');
 		}
 
 		const lastUpdateId = await db.getLatestUpdateId(env.D1_DATABASE);
-		const updates = await telegram.getUpdates(lastUpdateId);
+		const updates = await getUpdates(telegramConfig, lastUpdateId);
 
 		// Use Cloudflare Workers' ExecutionContext for background processing
 		ctx.waitUntil(
 			(async () => {
 				for (const update of updates.result) {
-					await processMessage(update, { env, telegram } as App);
+					await processMessage(update, { env, telegramConfig } as App);
 				}
 			})()
 		);
@@ -256,7 +263,7 @@ router
 		};
 	})
 
-	.post('/init', async ({ telegram, env, bot_name, headers, json }) => {
+	.post('/init', async ({ telegramConfig, env, bot_name, headers, json }) => {
 		if (headers.get('Authorization') !== `Bearer ${env.INIT_SECRET}`) {
 			return error(401, 'Unauthorized');
 		}
@@ -272,7 +279,7 @@ router
 		}
 
 		const { externalUrl } = await json<{ externalUrl: string }>();
-		const response = await telegram.setWebhook(`${externalUrl}/telegramMessage`, token);
+		const response = await setWebhook(telegramConfig, `${externalUrl}/telegramMessage`, token);
 
 		return `Success! Bot Name: https://t.me/${bot_name}. Webhook status: ${JSON.stringify(response)}`;
 	});
