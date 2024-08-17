@@ -32,6 +32,21 @@ export async function sendGreeting(
 	}
 }
 
+export async function sendInfo(
+	telegram: Telegram,
+	language: LanguageTag,
+	bot_name: string,
+	chatId: number | string,
+	replyToMessageId?: number
+): Promise<void> {
+	const message = getGreetingMessage(language, bot_name);
+	try {
+		await sendMessage(telegram, chatId, message, replyToMessageId);
+	} catch (error) {
+		throw error;
+	}
+}
+
 export async function sendCalendarLink(
 	telegram: Telegram,
 	language: LanguageTag,

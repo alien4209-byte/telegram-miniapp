@@ -19,21 +19,39 @@ const processMessage = async (json: TelegramUpdate, app: App): Promise<string> =
 		const messageToSave = JSON.stringify(json, null, 2);
 		await db.addMessage(env.D1_DATABASE, messageToSave, json.update_id);
 
-		if (json.message.text === '/start') {
-			const sendingPromise = sendGreeting(
-				app.telegram,
-				languageCode as LanguageTag,
-				app.bot_name,
-				chatId,
-				replyToMessageId
-			);
-			ctx.waitUntil(sendingPromise);
-			return 'Greeting sent';
-		}
+		const command = json.message.text;
 
-		return 'Skipped message';
+		switch (command) {
+			case '/start':
+				ctx.waitUntil(
+					sendGreeting(
+						app.telegram,
+						languageCode as LanguageTag,
+						app.bot_name,
+						chatId,
+						replyToMessageId
+					)
+				);
+				return 'Greeting sent';
+
+			case '/info':
+				ctx.waitUntil(
+					sendGreeting(
+						app.telegram,
+						languageCode as LanguageTag,
+						app.bot_name,
+						chatId,
+						replyToMessageId
+					)
+				);
+				return 'Info sent';
+
+			// Add more cases as needed
+
+			default:
+				return 'Skipped message';
+		}
 	} catch (error) {
-		console.error('Error processing message:', error);
 		return 'Error processing message';
 	}
 };
