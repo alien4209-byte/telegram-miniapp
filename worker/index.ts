@@ -88,6 +88,9 @@ router
 			incomingData.init_data_raw
 		);
 
+		console.log('initData: ' + incomingData.init_data_raw);
+		console.log('Hash response object : ' + JSON.stringify(data));
+
 		if (expected_hash !== calculated_hash) {
 			return error(401, 'Unauthorized');
 		}
