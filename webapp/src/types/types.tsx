@@ -38,12 +38,13 @@ export interface SendDatesResponse {
 
 export interface CalendarType {
 	id: number;
-	createdDate: string;
-	updatedDate: string;
-	userId: number;
-	calendarJson: string;
-	calendarRef: string;
-	dates: string[];
+	created_date: string;
+	updated_date: string;
+	user_id: number;
+	calendar_json: {
+		dates: string[];
+	};
+	calendar_ref: string;
 }
 
 export interface CalendarProps {

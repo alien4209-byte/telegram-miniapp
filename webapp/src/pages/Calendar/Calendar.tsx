@@ -18,7 +18,7 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 
 	const disabledMatcher = useMemo(() => {
 		if (!data) return () => false;
-		const enabledDates = new Set(data.calendar.dates);
+		const enabledDates = new Set(data.calendar.calendar_json.dates);
 		return (date: Date) => !enabledDates.has(date.toISOString().split('T')[0]);
 	}, [data]);
 

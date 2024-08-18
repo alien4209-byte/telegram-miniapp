@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS calendars (
 	created_date text NOT NULL,
 	updated_date text NOT NULL,
 	user_id integer NOT NULL,
-	calendar_json text NOT NULL,
+	calendar_json JSON NOT NULL,
 	calendar_ref text NOT NULL,
 	FOREIGN KEY(user_id) REFERENCES users(id)
 );
@@ -74,3 +74,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_selected_dates_index ON selectedDates (us
 
 CREATE UNIQUE INDEX IF NOT EXISTS token_hash_index ON tokens (token_hash);
 CREATE UNIQUE INDEX IF NOT EXISTS telegram_id_index ON users (telegram_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_json ON calendars(calendar_json);

@@ -120,9 +120,9 @@ export async function saveCalendar(
 		return await db
 			.prepare(
 				`
-          INSERT INTO calendars (created_date, updated_date, calendar_json, calendar_ref, user_id)
-          VALUES (DATETIME('now'), DATETIME('now'), ?, ?, ?)
-        `
+                INSERT INTO calendars (created_date, updated_date, calendar_json, calendar_ref, user_id)
+                VALUES (DATETIME('now'), DATETIME('now'), json(?), ?, ?)
+                `
 			)
 			.bind(calendarJson, calendarRef, userId)
 			.run();
@@ -138,9 +138,9 @@ export async function getCalendarByRef(
 ): Promise<string | null> {
 	try {
 		const result = await db
-			.prepare('SELECT calendar_json FROM calendars WHERE calendar_ref = ?')
+			.prepare('SELECT json(calendar_json) as calendar_json FROM calendars WHERE calendar_ref = ?')
 			.bind(calendarRef)
-			.first<dbTypes.Calendar>();
+			.first<{ calendar_json: string }>();
 
 		return result ? result.calendar_json : null;
 	} catch (e: any) {

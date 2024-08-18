@@ -53,7 +53,7 @@ export interface Calendar {
 	created_date: string;
 	updated_date: string;
 	user_id: number;
-	calendar_json: string;
+	calendar_json: any;
 	calendar_ref: string;
 }
 

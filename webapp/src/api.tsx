@@ -36,6 +36,6 @@ export const sendDates = async (token: string, dates: string[]): Promise<SendDat
 	return apiFetch<SendDatesResponse>('/miniApp/dates', {
 		method: 'POST',
 		headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-		body: JSON.stringify({ dates }),
+		body: JSON.stringify({ dates: { dates } }),
 	});
 };
