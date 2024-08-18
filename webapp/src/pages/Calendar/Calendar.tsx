@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DayPicker, SelectMultipleEventHandler } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner, Text } from '@telegram-apps/telegram-ui';
@@ -15,6 +15,14 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 		queryKey: ['calendar', apiRef],
 		queryFn: () => getCalendarByRef(token, apiRef),
 	});
+
+	useEffect(() => {
+		if (data) {
+			console.log('Raw API response:', data);
+			console.log('Calendar data structure:', JSON.stringify(data, null, 2));
+			console.log('calendar_json:', data.calendar?.calendar_json);
+		}
+	}, [data]);
 
 	const disabledMatcher = useMemo(() => {
 		if (!data) return () => false;
