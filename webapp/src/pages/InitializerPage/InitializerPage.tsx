@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Text, Button } from '@telegram-apps/telegram-ui';
@@ -115,7 +115,11 @@ const InitializerPage: React.FC = () => {
 		return 'en';
 	}, [data]);
 
-	//console.log(data.start_param);
+	useEffect(() => {
+		console.log('InitMiniApp Data:', data);
+		console.log('start_page:', data?.start_page);
+		console.log('start_param:', data?.start_param);
+	}, [data]);
 
 	return (
 		<LanguageProvider languageCode={languageCode}>
@@ -125,8 +129,8 @@ const InitializerPage: React.FC = () => {
 				<ErrorMessage message={errorMessage} onRetry={refetch} />
 			) : isOnboardingComplete ? (
 				<Home token={data!.token} />
-			) : data?.start_page === 'calendar' && data.start_param ? (
-				<Calendar token={data.token} apiRef={data.start_param} />
+			) : data?.start_page === 'calendar' && data?.start_param ? (
+				<Calendar token={data!.token} apiRef={data.start_param} />
 			) : (
 				<Onboarding onComplete={() => setOnboardingComplete(true)} />
 			)}
