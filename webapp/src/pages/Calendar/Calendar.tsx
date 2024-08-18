@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DayPicker, SelectMultipleEventHandler } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner, Text } from '@telegram-apps/telegram-ui';
@@ -21,6 +21,13 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 		queryKey: ['calendar', apiRef],
 		queryFn: () => getCalendarByRef(token, apiRef),
 	});
+
+	useEffect(() => {
+		if (data && data.calendar.dates) {
+			const initialDates = data.calendar.dates.map(dateStr => new Date(dateStr));
+			setSelectedDates(initialDates);
+		}
+	}, [data]);
 
 	const disabledDays = React.useMemo(() => {
 		if (!data) return undefined;
