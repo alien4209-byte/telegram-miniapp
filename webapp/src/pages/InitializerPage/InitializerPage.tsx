@@ -115,6 +115,8 @@ const InitializerPage: React.FC = () => {
 		return 'en';
 	}, [data]);
 
+	console.log(data.start_param);
+
 	return (
 		<LanguageProvider languageCode={languageCode}>
 			{isInitLoading || isStatusLoading ? (
