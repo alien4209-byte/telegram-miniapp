@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { DayPicker, SelectMultipleEventHandler } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner, Text } from '@telegram-apps/telegram-ui';
-
-import { getCalendarByRef, CalendarType } from '@/api';
+import { getCalendarByRef } from '@/api';
+import { CalendarType } from '@/types/types';
 import 'react-day-picker/dist/style.css';
 
 interface CalendarProps {
