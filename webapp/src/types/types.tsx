@@ -51,7 +51,3 @@ export interface CalendarProps {
 	token: string;
 	apiRef: string;
 }
-
-export interface CalendarType {
-	dates: string[];
-}

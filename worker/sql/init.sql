@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS selectedDates (
 	updated_date text NOT NULL,
 	user_id integer NOT NULL,
 	calendar_id integer NOT NULL,
-	selected_dates_json text NOT NULL,
+	selected_dates_json JSON NOT NULL,
 	FOREIGN KEY(user_id) REFERENCES users(id),
 	FOREIGN KEY(calendar_id) REFERENCES calendars(id)
 );
