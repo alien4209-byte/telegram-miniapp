@@ -36,7 +36,7 @@ export interface SendDatesResponse {
 	user: User;
 }
 
-export interface CalendarType {
+/*export interface CalendarType {
 	id: number;
 	created_date: string;
 	updated_date: string;
@@ -45,6 +45,10 @@ export interface CalendarType {
 		dates: string[];
 	};
 	calendar_ref: string;
+}*/
+
+export interface CalendarType {
+	dates: string[];
 }
 
 export interface CalendarProps {

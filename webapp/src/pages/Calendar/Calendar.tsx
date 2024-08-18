@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DayPicker, SelectMultipleEventHandler } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner, Text } from '@telegram-apps/telegram-ui';
@@ -9,22 +9,14 @@ import 'react-day-picker/dist/style.css';
 const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
 
-	const { data, isLoading, error } = useQuery<{ calendar: CalendarType | null }, Error>({
+	const { data, isLoading, error } = useQuery<{ calendar: CalendarType }, Error>({
 		queryKey: ['calendar', apiRef],
 		queryFn: () => getCalendarByRef(token, apiRef),
 	});
 
-	useEffect(() => {
-		if (data) {
-			console.log('Raw API response:', data);
-			console.log('Calendar data structure:', JSON.stringify(data, null, 2));
-			console.log('calendar_json:', data.calendar?.calendar_json);
-		}
-	}, [data]);
-
 	const disabledMatcher = useMemo(() => {
-		if (!data?.calendar?.calendar_json?.dates) return () => false;
-		const enabledDates = new Set(data.calendar.calendar_json.dates);
+		if (!data?.calendar?.dates) return () => false;
+		const enabledDates = new Set(data.calendar.dates);
 		return (date: Date) => !enabledDates.has(date.toISOString().split('T')[0]);
 	}, [data]);
 
