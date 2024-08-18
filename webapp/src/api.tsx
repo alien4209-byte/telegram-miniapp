@@ -26,8 +26,8 @@ export const getMe = async (token: string) => {
 export const getCalendarByRef = async (
 	token: string,
 	ref: string
-): Promise<{ calendar: CalendarType }> => {
-	return apiFetch<{ calendar: CalendarType }>(`/miniApp/calendar/${ref}`, {
+): Promise<{ calendar: CalendarType | null }> => {
+	return apiFetch<{ calendar: CalendarType | null }>(`/miniApp/calendar/${ref}`, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
 };
