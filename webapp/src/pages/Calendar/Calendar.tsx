@@ -9,14 +9,13 @@ import 'react-day-picker/dist/style.css';
 
 const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 	const miniapp = useMiniApp();
-	const { data, isLoading, error } = useQuery<{ calendar: CalendarType }, Error>({
+	const { data, error } = useQuery<{ calendar: CalendarType }, Error>({
 		queryKey: ['calendar', apiRef],
 		queryFn: () => getCalendarByRef(token, apiRef),
 	});
 
 	const enabledDates = useMemo(() => {
-		if (!data?.calendar?.dates) return [];
-		return data.calendar.dates.map(dateStr => new Date(dateStr));
+		return data?.calendar?.dates?.map(dateStr => new Date(dateStr)) || [];
 	}, [data]);
 
 	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -26,7 +25,8 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 	}, [miniapp]);
 
 	if (error) return <Text color="red">Error loading calendar: {error.message}</Text>;
-	if (!data?.calendar?.dates) return <Text>No calendar data available</Text>;
+
+	if (!enabledDates.length) return null;
 
 	return (
 		<div style={{ padding: '20px', maxWidth: '400px', margin: '0 auto' }}>
