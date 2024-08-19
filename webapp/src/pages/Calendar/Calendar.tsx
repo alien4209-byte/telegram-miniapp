@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useMiniApp } from '@telegram-apps/sdk-react';
 import { DayPicker } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
-import { Spinner, Text } from '@telegram-apps/telegram-ui';
+import { Text } from '@telegram-apps/telegram-ui';
 import { getCalendarByRef } from '@/api';
 import { CalendarType, CalendarProps } from '@/types/types';
 import 'react-day-picker/dist/style.css';
@@ -25,7 +25,6 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 		miniapp.ready();
 	}, [miniapp]);
 
-	if (isLoading) return <Spinner size="l" />;
 	if (error) return <Text color="red">Error loading calendar: {error.message}</Text>;
 	if (!data?.calendar?.dates) return <Text>No calendar data available</Text>;
 
