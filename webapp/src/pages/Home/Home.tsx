@@ -1,46 +1,28 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
-import { DayPicker, SelectMultipleEventHandler } from 'react-day-picker';
-import {
-	useMiniApp,
-	useMainButton,
-	initPopup,
-	initHapticFeedback,
-	Popup,
-} from '@telegram-apps/sdk-react';
+import { DayPicker } from 'react-day-picker';
+import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Text, Spinner } from '@telegram-apps/telegram-ui';
-
 import { sendDates } from '@/api';
+import { HomeProps } from '@/types/types';
+
 import 'react-day-picker/dist/style.css';
 import styles from './Home.module.css';
 
-interface HomeProps {
-	token: string;
-}
+const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 
 const Home: React.FC<HomeProps> = ({ token }) => {
 	const miniapp = useMiniApp();
 	const mainButton = useMainButton();
 	const popup = initPopup();
-	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-
-	// Initialize haptic feedback
 	const hapticFeedback = initHapticFeedback();
-
-	useEffect(() => {
-		miniapp.ready();
-	}, [miniapp]);
+	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
 
 	const dateMutation = useMutation({
 		mutationKey: ['sendDate', token],
-		mutationFn: async (dates: Date[]) => {
-			const formattedDates = dates.map(date => format(date, 'yyyy-MM-dd'));
-			return sendDates(token, formattedDates);
-		},
-		onSuccess: () => {
-			miniapp.close(true);
-		},
+		mutationFn: (dates: Date[]) => sendDates(token, dates.map(formatDate)),
+		onSuccess: () => miniapp.close(true),
 		onError: error => {
 			popup
 				.open({
@@ -52,59 +34,44 @@ const Home: React.FC<HomeProps> = ({ token }) => {
 					],
 				})
 				.then((buttonId: string | null) => {
-					if (buttonId === 'retry') {
-						dateMutation.mutate(selectedDates);
-					}
+					if (buttonId === 'retry') dateMutation.mutate(selectedDates);
 				});
 		},
 	});
 
 	const handleMainButtonClick = useCallback(() => {
 		if (selectedDates.length > 0) {
-			// Trigger haptic feedback
 			hapticFeedback.impactOccurred('medium');
-
 			dateMutation.mutate(selectedDates);
 		}
 	}, [selectedDates, dateMutation, hapticFeedback]);
 
 	useEffect(() => {
+		miniapp.ready();
+
 		if (selectedDates.length > 0) {
-			mainButton.setText('Select dates');
-			mainButton.show();
-			if (dateMutation.isLoading) {
-				mainButton.disable();
-				mainButton.showLoader();
-			} else {
-				mainButton.enable();
-				mainButton.hideLoader();
-			}
+			mainButton.setText('Select dates').show();
+			mainButton[dateMutation.isLoading ? 'showLoader' : 'hideLoader']();
+			mainButton[dateMutation.isLoading ? 'disable' : 'enable']();
 			mainButton.on('click', handleMainButtonClick);
 		} else {
 			mainButton.hide();
 		}
+
 		return () => {
 			mainButton.off('click', handleMainButtonClick);
 		};
-	}, [selectedDates, dateMutation.isLoading, mainButton, handleMainButtonClick]);
-
-	const handleSelectDates: SelectMultipleEventHandler = useCallback(days => {
-		setSelectedDates(days || []);
-	}, []);
+	}, [miniapp, selectedDates, dateMutation.isLoading, mainButton, handleMainButtonClick]);
 
 	const footer = useMemo(() => {
 		if (selectedDates.length === 0) {
 			return <Text>Please pick the days you propose for the meetup.</Text>;
 		}
+		const dateString = selectedDates.map(date => format(date, 'PP')).join(', ');
 		return (
 			<Text>
 				You picked {selectedDates.length} {selectedDates.length > 1 ? 'dates' : 'date'}:{' '}
-				{selectedDates.map((date, index) => (
-					<React.Fragment key={date.getTime()}>
-						{index ? ', ' : ''}
-						{format(date, 'PP')}
-					</React.Fragment>
-				))}
+				{dateString}
 			</Text>
 		);
 	}, [selectedDates]);
@@ -122,7 +89,7 @@ const Home: React.FC<HomeProps> = ({ token }) => {
 				min={1}
 				max={5}
 				selected={selectedDates}
-				onSelect={handleSelectDates}
+				onSelect={days => setSelectedDates(days!)}
 				footer={footer}
 				disabled={dateMutation.isLoading}
 			/>

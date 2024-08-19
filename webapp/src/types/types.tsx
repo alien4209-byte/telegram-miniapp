@@ -55,3 +55,7 @@ export interface CalendarProps {
 	token: string;
 	apiRef: string;
 }
+
+export interface HomeProps {
+	token: string;
+}
