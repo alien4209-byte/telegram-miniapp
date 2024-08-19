@@ -1,16 +1,16 @@
 import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Text, Button } from '@telegram-apps/telegram-ui';
 import LoadingSpinner from '@/utils/loadingSpinner';
 import { initMiniApp } from '@/api';
 import Calendar from '@/pages/Calendar/Calendar';
 import Home from '@/pages/Home/Home';
 import Onboarding from '@/pages/Onboarding/Onboarding';
 import { cacheWithCloudStorage } from '@/utils/cacheWithCloudStorage';
-import { LanguageProvider, useLanguage } from '@/utils/LanguageContext';
+import { LanguageProvider } from '@/utils/LanguageContext';
 import { getSupportedLanguageCode } from '@/utils/i18n';
 import { TelegramInitData, InitMiniAppResponse } from '@/types/types';
+import ErrorDisplay from '@/utils/ErrorDisplay';
 
 const INIT_QUERY_KEY = 'initData';
 const ONBOARDING_STATUS_KEY = 'hasCompletedOnboarding';
@@ -63,37 +63,6 @@ const useOnboardingStatus = () => {
 	};
 };
 
-// Components
-const ErrorMessage: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => {
-	const { t } = useLanguage();
-
-	return (
-		<div
-			style={{
-				display: 'flex',
-				flexDirection: 'column',
-				alignItems: 'center',
-				justifyContent: 'center',
-				height: '100vh', // Full viewport height to center vertically
-				padding: '20px',
-				textAlign: 'center', // Center text
-			}}
-		>
-			<Text style={{ marginBottom: '20px' }}>{t('common.loadFailed')}</Text>
-			<Button
-				onClick={onRetry}
-				style={{
-					marginTop: '20px',
-					padding: '10px 20px',
-					cursor: 'pointer',
-				}}
-			>
-				{t('common.retry')}
-			</Button>
-		</div>
-	);
-};
-
 const InitializerPage: React.FC = () => {
 	const { isLoading: isInitLoading, isError, error, data, refetch } = useInitMiniApp();
 	const {
@@ -127,11 +96,11 @@ const InitializerPage: React.FC = () => {
 	}
 
 	if (errorMessage) {
-		return <ErrorMessage message={errorMessage} onRetry={refetch} />;
+		return <ErrorDisplay message={errorMessage} onRetry={refetch} />;
 	}
 
 	if (!data || !data.token) {
-		return <ErrorMessage message={ERROR_MESSAGES.TOKEN_MISSING} onRetry={refetch} />;
+		return <ErrorDisplay message={ERROR_MESSAGES.TOKEN_MISSING} onRetry={refetch} />;
 	}
 
 	return (
