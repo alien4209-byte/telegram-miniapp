@@ -41,7 +41,11 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 				}
 				modifiers={{ available: enabledDates }}
 				modifiersStyles={{
-					available: { fontWeight: 'bold', color: 'green' },
+					available: {
+						backgroundColor: 'tomato',
+						color: 'white',
+						borderRadius: '50%',
+					},
 				}}
 			/>
 		</div>
