@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
 import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
-import { Text, Spinner } from '@telegram-apps/telegram-ui';
+import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
 import { HomeProps } from '@/types/types';
 
@@ -75,10 +75,6 @@ const Home: React.FC<HomeProps> = ({ token }) => {
 			</Text>
 		);
 	}, [selectedDates]);
-
-	if (dateMutation.isLoading) {
-		return <Spinner size="l" />;
-	}
 
 	return (
 		<div className={styles.container}>
