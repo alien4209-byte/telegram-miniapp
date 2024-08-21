@@ -3,12 +3,10 @@ import { Tabbar } from '@telegram-apps/telegram-ui';
 import { useMainButton } from '@telegram-apps/sdk-react';
 import styles from '@/pages/Home/Home.module.css';
 
-// Lazy load page components
 const DateSelection = lazy(() => import('@/pages/DateSelection/DateSelection'));
 const Invite = lazy(() => import('@/pages/Invite/Invite'));
 const Search = lazy(() => import('@/pages/Search/Search'));
 
-// Define tabs configuration
 const tabConfig = [
 	{ id: 'calendar', icon: '📅', component: DateSelection },
 	{ id: 'invite', icon: '🗓️', component: Invite },
