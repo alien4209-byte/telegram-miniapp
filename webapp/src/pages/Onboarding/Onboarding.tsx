@@ -21,11 +21,14 @@ interface OnboardingProps {
 	onComplete: () => void;
 }
 
-type Slide = {
+export interface TranslatedSlide {
 	title: string;
 	content: string;
+}
+
+export interface Slide extends TranslatedSlide {
 	animation: unknown;
-};
+}
 
 type AnimationState = { status: 'loaded' } | { status: 'error'; message: string };
 
@@ -69,19 +72,29 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 	const hapticFeedback = useHapticFeedback();
 	const lottieRef = useRef<LottieRefCurrentProps>(null);
 
-	const slides: Slide[] = useMemo(
-		() =>
-			t('onboarding.slides').map((slide: any, index: number) => ({
-				...slide,
-				animation: [
-					welcomeAnimation,
-					createEventsAnimation,
-					voteDatesAnimation,
-					notificationsAnimation,
-				][index],
-			})),
-		[t]
-	);
+	const slides: Slide[] = useMemo(() => {
+		const translatedSlidesString = t('onboarding.slides');
+		let translatedSlides: TranslatedSlide[];
+
+		try {
+			translatedSlides = JSON.parse(translatedSlidesString) as TranslatedSlide[];
+		} catch (error) {
+			console.error('Error parsing onboarding slides:', error);
+			return []; // Return an empty array if parsing fails
+		}
+
+		const animations = [
+			welcomeAnimation,
+			createEventsAnimation,
+			voteDatesAnimation,
+			notificationsAnimation,
+		];
+
+		return translatedSlides.map((slide, index) => ({
+			...slide,
+			animation: animations[index] || animations[0], // Fallback to first animation if index is out of bounds
+		}));
+	}, [t]);
 
 	const changeSlide = useCallback(
 		(newSlide: number) => {

@@ -17,7 +17,7 @@ export const initMiniApp = async (initData: TelegramInitData): Promise<InitMiniA
 	});
 };
 
-export const getMe = async (token: string) => {
+export const getMe = async (token: string): Promise<{ user: User }> => {
 	return apiFetch<{ user: User }>('/miniApp/me', {
 		headers: { Authorization: `Bearer ${token}` },
 	});
