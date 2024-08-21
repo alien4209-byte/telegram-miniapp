@@ -14,7 +14,7 @@ import {
 	useSwipeBehavior,
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Navigate, Route, Router, Routes, RouteObject } from 'react-router-dom';
 
 import { routes } from '@/navigation/routes';

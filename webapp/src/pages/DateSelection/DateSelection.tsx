@@ -1,17 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
-import {
-	useMiniApp,
-	useMainButton,
-	useBackButton,
-	initPopup,
-	initHapticFeedback,
-} from '@telegram-apps/sdk-react';
+import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
 import { HomeProps } from '@/types/types';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import 'react-day-picker/dist/style.css';
 import styles from '@/pages/DateSelection/DateSelection.module.css';
@@ -21,16 +16,19 @@ const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 const DateSelection: React.FC<HomeProps> = ({ token }) => {
 	const miniapp = useMiniApp();
 	const mainButton = useMainButton();
-	const backButton = useBackButton();
 	const popup = initPopup();
 	const hapticFeedback = initHapticFeedback();
+	const navigate = useNavigate();
+	const location = useLocation();
 	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const dateMutation = useMutation({
 		mutationKey: ['sendDate', token],
 		mutationFn: (dates: Date[]) => sendDates(token, dates.map(formatDate)),
 		onSuccess: () => miniapp.close(true),
 		onError: error => {
+			setIsSubmitting(false);
 			popup
 				.open({
 					title: 'Error',
@@ -41,55 +39,52 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 					],
 				})
 				.then((buttonId: string | null) => {
-					if (buttonId === 'retry') dateMutation.mutate(selectedDates);
+					if (buttonId === 'retry') handleMainButtonClick();
 				});
 		},
 	});
 
 	const handleMainButtonClick = useCallback(() => {
-		if (selectedDates.length > 0) {
+		if (selectedDates.length > 0 && !isSubmitting) {
 			hapticFeedback.impactOccurred('medium');
+			setIsSubmitting(true);
+			// Push a new state to handle back button for MainButton press
+			navigate(location.pathname, { state: { isSubmitting: true } });
 			dateMutation.mutate(selectedDates);
-			backButton.show(); // Show back button when main button is pressed
 		}
-	}, [selectedDates, dateMutation, hapticFeedback, backButton]);
-
-	const handleBackButtonClick = useCallback(() => {
-		if (dateMutation.isLoading) {
-			dateMutation.reset();
-			backButton.hide();
-			return true; // Prevent default back action
-		}
-		return false; // Allow default back action
-	}, [dateMutation, backButton]);
+	}, [selectedDates, dateMutation, hapticFeedback, isSubmitting, navigate, location.pathname]);
 
 	useEffect(() => {
 		miniapp.ready();
 
 		if (selectedDates.length > 0) {
 			mainButton.setText('Select dates').show();
-			mainButton[dateMutation.isLoading ? 'showLoader' : 'hideLoader']();
-			mainButton[dateMutation.isLoading ? 'disable' : 'enable']();
+			mainButton[isSubmitting ? 'showLoader' : 'hideLoader']();
+			mainButton[isSubmitting ? 'disable' : 'enable']();
 			mainButton.on('click', handleMainButtonClick);
 		} else {
 			mainButton.hide();
 		}
 
-		backButton.on('click', handleBackButtonClick);
+		// Handle back navigation when isSubmitting
+		if (location.state && (location.state as { isSubmitting: boolean }).isSubmitting) {
+			setIsSubmitting(true);
+		}
 
 		return () => {
 			mainButton.off('click', handleMainButtonClick);
-			backButton.off('click', handleBackButtonClick);
 		};
-	}, [
-		miniapp,
-		selectedDates,
-		dateMutation.isLoading,
-		mainButton,
-		backButton,
-		handleMainButtonClick,
-		handleBackButtonClick,
-	]);
+	}, [miniapp, selectedDates, isSubmitting, mainButton, handleMainButtonClick, location.state]);
+
+	// Handle back navigation
+	useEffect(() => {
+		return () => {
+			if (isSubmitting) {
+				dateMutation.reset();
+				setIsSubmitting(false);
+			}
+		};
+	}, [isSubmitting, dateMutation]);
 
 	const footer = useMemo(() => {
 		if (selectedDates.length === 0) {
@@ -115,7 +110,7 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 				selected={selectedDates}
 				onSelect={days => setSelectedDates(days!)}
 				footer={footer}
-				disabled={dateMutation.isLoading}
+				disabled={isSubmitting}
 			/>
 		</div>
 	);
