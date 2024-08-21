@@ -1,18 +1,23 @@
 .container {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	height: 100vh;
-	padding-bottom: 56px; /* Height of the Tabbar */
+	min-height: 100vh;
 }
 
 .tabbar {
+	transition:
+		opacity 0.3s ease-in-out,
+		transform 0.3s ease-in-out;
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background-color: #ffffff;
-	border-top: 1px solid #e0e0e0;
+}
+
+.tabbarHidden {
+	opacity: 0;
+	transform: translateY(100%);
+	pointer-events: none;
 }
 
 .title {

@@ -1,5 +1,6 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { Tabbar } from '@telegram-apps/telegram-ui';
+import { useMainButton } from '@telegram-apps/sdk-react';
 import styles from '@/pages/Home/Home.module.css';
 
 // Lazy load page components
@@ -16,9 +17,28 @@ const tabConfig = [
 
 const Home: React.FC<{ token: string }> = ({ token }) => {
 	const [currentTab, setCurrentTab] = useState(tabConfig[0].id);
+	const [isTabbarVisible, setIsTabbarVisible] = useState(true);
+	const mainButton = useMainButton();
 
 	const ActiveComponent =
 		tabConfig.find(tab => tab.id === currentTab)?.component || tabConfig[0].component;
+
+	useEffect(() => {
+		const handleMainButtonVisibilityChange = (isVisible: boolean) => {
+			setIsTabbarVisible(!isVisible);
+		};
+
+		// Initial check
+		handleMainButtonVisibilityChange(mainButton.isVisible);
+
+		// Subscribe to MainButton visibility changes
+		mainButton.on('change:isVisible', handleMainButtonVisibilityChange);
+
+		// Cleanup
+		return () => {
+			mainButton.off('change:isVisible', handleMainButtonVisibilityChange);
+		};
+	}, [mainButton]);
 
 	return (
 		<div className={styles.container}>
@@ -26,7 +46,7 @@ const Home: React.FC<{ token: string }> = ({ token }) => {
 				<ActiveComponent token={token} />
 			</Suspense>
 
-			<Tabbar className={styles.tabbar}>
+			<Tabbar className={`${styles.tabbar} ${!isTabbarVisible ? styles.tabbarHidden : ''}`}>
 				{tabConfig.map(({ id, icon }) => (
 					<Tabbar.Item
 						key={id}
