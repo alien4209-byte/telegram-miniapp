@@ -1,6 +1,6 @@
-import React, { useState, lazy, Suspense, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Tabbar } from '@telegram-apps/telegram-ui';
-import { useMainButton } from '@telegram-apps/sdk-react';
+import { useMainButton, useBackButton, useMiniApp } from '@telegram-apps/sdk-react';
 import styles from '@/pages/Home/Home.module.css';
 
 const DateSelection = lazy(() => import('@/pages/DateSelection/DateSelection'));
@@ -15,28 +15,26 @@ const tabConfig = [
 
 const Home: React.FC<{ token: string }> = ({ token }) => {
 	const [currentTab, setCurrentTab] = useState(tabConfig[0].id);
-	const [isTabbarVisible, setIsTabbarVisible] = useState(true);
 	const mainButton = useMainButton();
+	const backButton = useBackButton();
+	const miniApp = useMiniApp();
 
 	const ActiveComponent =
 		tabConfig.find(tab => tab.id === currentTab)?.component || tabConfig[0].component;
 
 	useEffect(() => {
-		const handleMainButtonVisibilityChange = (isVisible: boolean) => {
-			setIsTabbarVisible(!isVisible);
-		};
+		miniApp.ready();
+		backButton.show();
 
-		// Initial check
-		handleMainButtonVisibilityChange(mainButton.isVisible);
-
-		// Subscribe to MainButton visibility changes
-		mainButton.on('change:isVisible', handleMainButtonVisibilityChange);
-
-		// Cleanup
 		return () => {
-			mainButton.off('change:isVisible', handleMainButtonVisibilityChange);
+			backButton.hide();
 		};
-	}, [mainButton]);
+	}, [miniApp, backButton]);
+
+	const handleTabChange = (id: string) => {
+		setCurrentTab(id);
+		mainButton.hide();
+	};
 
 	return (
 		<div className={styles.container}>
@@ -44,13 +42,13 @@ const Home: React.FC<{ token: string }> = ({ token }) => {
 				<ActiveComponent token={token} />
 			</Suspense>
 
-			<Tabbar className={`${styles.tabbar} ${!isTabbarVisible ? styles.tabbarHidden : ''}`}>
+			<Tabbar className={styles.tabbar}>
 				{tabConfig.map(({ id, icon }) => (
 					<Tabbar.Item
 						key={id}
 						text={id.charAt(0).toUpperCase() + id.slice(1)}
 						selected={id === currentTab}
-						onClick={() => setCurrentTab(id)}
+						onClick={() => handleTabChange(id)}
 					>
 						<div style={{ width: 28, height: 28 }}>{icon}</div>
 					</Tabbar.Item>
