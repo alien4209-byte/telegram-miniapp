@@ -44,9 +44,9 @@ const useOnboardingStatus = () => {
 		queryFn: async () => {
 			const status = await cache.get<boolean>(ONBOARDING_STATUS_KEY);
 			// Temporary override: always return false
-			return false;
+			//return false;
 			// Comment out or remove the line below when you want to revert to normal behavior
-			// return status ?? false;
+			return status ?? false;
 		},
 		retry: 1,
 	});
