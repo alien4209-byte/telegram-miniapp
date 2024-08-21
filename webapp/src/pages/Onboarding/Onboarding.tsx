@@ -75,7 +75,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 	const lottieRef = useRef<LottieRefCurrentProps>(null);
 
 	const slides: Slide[] = useMemo(() => {
-		const localizedSlides = t('onboarding.slides') as LocalizedSlide[];
+		const localizedSlides = t('onboarding.slides') as unknown as LocalizedSlide[];
+
+		if (
+			!Array.isArray(localizedSlides) ||
+			!localizedSlides.every(slide => 'title' in slide && 'content' in slide)
+		) {
+			console.error('Unexpected structure in onboarding.slides');
+			return []; // Return an empty array or some default slides
+		}
 
 		return localizedSlides.map((slide, index) => ({
 			...slide,
