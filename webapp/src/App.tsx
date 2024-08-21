@@ -65,7 +65,7 @@ export const App: React.FC = () => {
 		};
 	}, [navigator, backButton]);
 
-	const renderRoute = useCallback((route: RouteObject) => {
+	const renderRoute = (route: RouteObject) => {
 		if (route.index) {
 			return <Route key={route.path} index element={route.element} />;
 		} else {
@@ -75,7 +75,7 @@ export const App: React.FC = () => {
 				</Route>
 			);
 		}
-	}, []);
+	};
 
 	return (
 		<AppRoot

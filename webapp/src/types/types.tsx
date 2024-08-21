@@ -3,6 +3,12 @@ enum StartPage {
 	Home = 'home',
 }
 
+export interface RetryOptions {
+	maxRetries: number;
+	retryDelay: number;
+	retryOn: (error: Error) => boolean;
+}
+
 export interface TelegramInitData {
 	init_data_raw: string;
 }
