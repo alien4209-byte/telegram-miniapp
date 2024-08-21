@@ -27,6 +27,11 @@ type Slide = {
 	animation: unknown;
 };
 
+type LocalizedSlide = {
+	title: string;
+	content: string;
+};
+
 type AnimationState = { status: 'loaded' } | { status: 'error'; message: string };
 
 type State = {
@@ -69,19 +74,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 	const hapticFeedback = useHapticFeedback();
 	const lottieRef = useRef<LottieRefCurrentProps>(null);
 
-	const slides: Slide[] = useMemo(
-		() =>
-			t('onboarding.slides').map((slide: any, index: number) => ({
-				...slide,
-				animation: [
-					welcomeAnimation,
-					createEventsAnimation,
-					voteDatesAnimation,
-					notificationsAnimation,
-				][index],
-			})),
-		[t]
-	);
+	const slides: Slide[] = useMemo(() => {
+		const localizedSlides = t('onboarding.slides') as LocalizedSlide[];
+
+		return localizedSlides.map((slide, index) => ({
+			...slide,
+			animation: [
+				welcomeAnimation,
+				createEventsAnimation,
+				voteDatesAnimation,
+				notificationsAnimation,
+			][index],
+		}));
+	}, [t]);
 
 	const changeSlide = useCallback(
 		(newSlide: number) => {
