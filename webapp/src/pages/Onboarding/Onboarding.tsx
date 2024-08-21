@@ -69,35 +69,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 	const hapticFeedback = useHapticFeedback();
 	const lottieRef = useRef<LottieRefCurrentProps>(null);
 
-	type LocalizedSlide = Omit<Slide, 'animation'>;
-
-	const slides: Slide[] = useMemo(() => {
-		const rawSlides = t('onboarding.slides');
-		let parsedSlides: LocalizedSlide[];
-
-		try {
-			parsedSlides = JSON.parse(rawSlides) as LocalizedSlide[];
-			if (
-				!Array.isArray(parsedSlides) ||
-				!parsedSlides.every(slide => 'title' in slide && 'content' in slide)
-			) {
-				throw new Error('Invalid slide data structure');
-			}
-		} catch (error) {
-			console.error('Failed to parse onboarding slides:', error);
-			return []; // Return an empty array or some default slides
-		}
-
-		return parsedSlides.map((slide, index) => ({
-			...slide,
-			animation: [
-				welcomeAnimation,
-				createEventsAnimation,
-				voteDatesAnimation,
-				notificationsAnimation,
-			][index],
-		}));
-	}, [t]);
+	const slides: Slide[] = useMemo(
+		() =>
+			t('onboarding.slides').map((slide: any, index: number) => ({
+				...slide,
+				animation: [
+					welcomeAnimation,
+					createEventsAnimation,
+					voteDatesAnimation,
+					notificationsAnimation,
+				][index],
+			})),
+		[t]
+	);
 
 	const changeSlide = useCallback(
 		(newSlide: number) => {
