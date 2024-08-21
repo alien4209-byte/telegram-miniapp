@@ -3,7 +3,7 @@ import { getTranslation } from '@/utils/i18n';
 
 interface LanguageContextType {
 	languageCode: string;
-	t: (key: string) => string;
+	t: (key: string, fallback?: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);

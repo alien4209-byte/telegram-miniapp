@@ -21,14 +21,11 @@ interface OnboardingProps {
 	onComplete: () => void;
 }
 
-export interface TranslatedSlide {
+type Slide = {
 	title: string;
 	content: string;
-}
-
-export interface Slide extends TranslatedSlide {
 	animation: unknown;
-}
+};
 
 type AnimationState = { status: 'loaded' } | { status: 'error'; message: string };
 
@@ -72,27 +69,33 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 	const hapticFeedback = useHapticFeedback();
 	const lottieRef = useRef<LottieRefCurrentProps>(null);
 
+	type LocalizedSlide = Omit<Slide, 'animation'>;
+
 	const slides: Slide[] = useMemo(() => {
-		const translatedSlidesString = t('onboarding.slides');
-		let translatedSlides: TranslatedSlide[];
+		const rawSlides = t('onboarding.slides');
+		let parsedSlides: LocalizedSlide[];
 
 		try {
-			translatedSlides = JSON.parse(translatedSlidesString) as TranslatedSlide[];
+			parsedSlides = JSON.parse(rawSlides) as LocalizedSlide[];
+			if (
+				!Array.isArray(parsedSlides) ||
+				!parsedSlides.every(slide => 'title' in slide && 'content' in slide)
+			) {
+				throw new Error('Invalid slide data structure');
+			}
 		} catch (error) {
-			console.error('Error parsing onboarding slides:', error);
-			return []; // Return an empty array if parsing fails
+			console.error('Failed to parse onboarding slides:', error);
+			return []; // Return an empty array or some default slides
 		}
 
-		const animations = [
-			welcomeAnimation,
-			createEventsAnimation,
-			voteDatesAnimation,
-			notificationsAnimation,
-		];
-
-		return translatedSlides.map((slide, index) => ({
+		return parsedSlides.map((slide, index) => ({
 			...slide,
-			animation: animations[index] || animations[0], // Fallback to first animation if index is out of bounds
+			animation: [
+				welcomeAnimation,
+				createEventsAnimation,
+				voteDatesAnimation,
+				notificationsAnimation,
+			][index],
 		}));
 	}, [t]);
 
