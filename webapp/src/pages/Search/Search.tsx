@@ -8,7 +8,7 @@ import { sendDates } from '@/api';
 import { HomeProps } from '@/types/types';
 
 import 'react-day-picker/dist/style.css';
-import styles from '@/Search.module.css';
+import styles from '@/pages/Search/Search.module.css';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 

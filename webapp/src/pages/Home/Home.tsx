@@ -1,6 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Tabbar } from '@telegram-apps/telegram-ui';
-import styles from './Home.module.css';
+import styles from '@/pages/Home/Home.module.css';
 
 // Lazy load page components
 const DateSelection = lazy(() => import('@/pages/DateSelection/DateSelection'));
