@@ -5,14 +5,14 @@ import styles from '@/pages/Home/Home.module.css';
 
 // Lazy load page components
 const DateSelection = lazy(() => import('@/pages/DateSelection/DateSelection'));
-const Calendar = lazy(() => import('@/pages/Invite/Invite'));
-const Settings = lazy(() => import('@/pages/Search/Search'));
+const Invite = lazy(() => import('@/pages/Invite/Invite'));
+const Search = lazy(() => import('@/pages/Search/Search'));
 
 // Define tabs configuration
 const tabConfig = [
-	{ id: 'dates', icon: '📅', component: DateSelection },
-	{ id: 'calendar', icon: '🗓️', component: Calendar },
-	{ id: 'settings', icon: '⚙️', component: Settings },
+	{ id: 'calendar', icon: '📅', component: DateSelection },
+	{ id: 'invite', icon: '🗓️', component: Invite },
+	{ id: 'settings', icon: '⚙️', component: Search },
 ];
 
 const Home: React.FC<{ token: string }> = ({ token }) => {
