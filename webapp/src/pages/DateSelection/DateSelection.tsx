@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
-import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@telegram-apps/sdk-react';
+import {
+	useMiniApp,
+	useMainButton,
+	useBackButton,
+	initPopup,
+	initHapticFeedback,
+} from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
@@ -15,6 +21,7 @@ const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 const DateSelection: React.FC<HomeProps> = ({ token }) => {
 	const miniapp = useMiniApp();
 	const mainButton = useMainButton();
+	const backButton = useBackButton();
 	const popup = initPopup();
 	const hapticFeedback = initHapticFeedback();
 	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -43,8 +50,18 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 		if (selectedDates.length > 0) {
 			hapticFeedback.impactOccurred('medium');
 			dateMutation.mutate(selectedDates);
+			backButton.show(); // Show back button when main button is pressed
 		}
-	}, [selectedDates, dateMutation, hapticFeedback]);
+	}, [selectedDates, dateMutation, hapticFeedback, backButton]);
+
+	const handleBackButtonClick = useCallback(() => {
+		if (dateMutation.isLoading) {
+			dateMutation.reset();
+			backButton.hide();
+			return true; // Prevent default back action
+		}
+		return false; // Allow default back action
+	}, [dateMutation, backButton]);
 
 	useEffect(() => {
 		miniapp.ready();
@@ -58,10 +75,21 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 			mainButton.hide();
 		}
 
+		backButton.on('click', handleBackButtonClick);
+
 		return () => {
 			mainButton.off('click', handleMainButtonClick);
+			backButton.off('click', handleBackButtonClick);
 		};
-	}, [miniapp, selectedDates, dateMutation.isLoading, mainButton, handleMainButtonClick]);
+	}, [
+		miniapp,
+		selectedDates,
+		dateMutation.isLoading,
+		mainButton,
+		backButton,
+		handleMainButtonClick,
+		handleBackButtonClick,
+	]);
 
 	const footer = useMemo(() => {
 		if (selectedDates.length === 0) {
