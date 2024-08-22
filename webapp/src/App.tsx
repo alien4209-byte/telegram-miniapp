@@ -1,10 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useIntegration } from '@telegram-apps/react-router-integration';
 import {
 	bindMiniAppCSSVars,
 	bindThemeParamsCSSVars,
 	bindViewportCSSVars,
-	initNavigator,
 	useLaunchParams,
 	useMiniApp,
 	useThemeParams,
@@ -14,10 +12,8 @@ import {
 	useSwipeBehavior,
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
-import React, { useEffect, useMemo } from 'react';
-import { Navigate, Route, Router, Routes, RouteObject } from 'react-router-dom';
-
-import { routes } from '@/navigation/routes';
+import React, { useEffect } from 'react';
+import InitializerPage from '@/pages/InitializerPage/InitializerPage';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
 
@@ -38,7 +34,7 @@ export const App: React.FC = () => {
 			viewport.expand();
 			swipeBehavior.disableVerticalSwipe();
 		}
-	}, [viewport]);
+	}, [viewport, swipeBehavior]);
 
 	useEffect(() => {
 		bindMiniAppCSSVars(miniApp, themeParams);
@@ -53,29 +49,12 @@ export const App: React.FC = () => {
 		return () => closingBehavior.disableConfirmation();
 	}, [closingBehavior]);
 
-	const navigator = useMemo(() => initNavigator('app-navigation-state'), []);
-	const [location, reactNavigator] = useIntegration(navigator);
-
 	useEffect(() => {
-		navigator.attach();
 		backButton.show();
 		return () => {
-			navigator.detach();
 			backButton.hide();
 		};
-	}, [navigator, backButton]);
-
-	const renderRoute = (route: RouteObject) => {
-		if (route.index) {
-			return <Route key={route.path} index element={route.element} />;
-		} else {
-			return (
-				<Route key={route.path} path={route.path} element={route.element}>
-					{route.children?.map(renderRoute)}
-				</Route>
-			);
-		}
-	};
+	}, [backButton]);
 
 	return (
 		<AppRoot
@@ -83,12 +62,7 @@ export const App: React.FC = () => {
 			platform={['macos', 'ios'].includes(lp.platform) ? 'ios' : 'base'}
 		>
 			<QueryClientProvider client={queryClient}>
-				<Router location={location} navigator={reactNavigator}>
-					<Routes>
-						{routes.map(renderRoute)}
-						<Route path="*" element={<Navigate to="/" />} />
-					</Routes>
-				</Router>
+				<InitializerPage />
 			</QueryClientProvider>
 		</AppRoot>
 	);
