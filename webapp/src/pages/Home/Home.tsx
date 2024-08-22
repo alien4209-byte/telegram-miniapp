@@ -1,6 +1,7 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { Tabbar } from '@telegram-apps/telegram-ui';
 import { useMainButton, useBackButton, useMiniApp } from '@telegram-apps/sdk-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from '@/pages/Home/Home.module.css';
 
 const DateSelection = lazy(() => import('@/pages/DateSelection/DateSelection'));
@@ -8,33 +9,72 @@ const Invite = lazy(() => import('@/pages/Invite/Invite'));
 const Search = lazy(() => import('@/pages/Search/Search'));
 
 const tabConfig = [
-	{ id: 'calendar', icon: '📅', component: DateSelection },
-	{ id: 'invite', icon: '🗓️', component: Invite },
-	{ id: 'settings', icon: '⚙️', component: Search },
+	{ id: 'calendar', icon: '📅', path: '/home/calendar', component: DateSelection },
+	{ id: 'invite', icon: '🗓️', path: '/home/invite', component: Invite },
+	{ id: 'settings', icon: '⚙️', path: '/home/settings', component: Search },
 ];
 
 const Home: React.FC<{ token: string }> = ({ token }) => {
-	const [currentTab, setCurrentTab] = useState(tabConfig[0].id);
+	const navigate = useNavigate();
+	const location = useLocation();
 	const mainButton = useMainButton();
 	const backButton = useBackButton();
 	const miniApp = useMiniApp();
 
-	const ActiveComponent =
-		tabConfig.find(tab => tab.id === currentTab)?.component || tabConfig[0].component;
+	const [tabHistory, setTabHistory] = useState<string[]>([tabConfig[0].id]);
+
+	const currentTab = useMemo(() => {
+		const currentPath = location.pathname;
+		return tabConfig.find(tab => currentPath.includes(tab.id)) || tabConfig[0];
+	}, [location.pathname]);
 
 	useEffect(() => {
 		miniApp.ready();
 		backButton.show();
 
+		// Set initial route if not already on a tab route
+		if (!location.pathname.includes('/home/')) {
+			navigate(tabConfig[0].path, { replace: true });
+		}
+
 		return () => {
 			backButton.hide();
 		};
-	}, [miniApp, backButton]);
+	}, [miniApp, backButton, navigate, location.pathname]);
 
-	const handleTabChange = (id: string) => {
-		setCurrentTab(id);
-		mainButton.hide();
-	};
+	const handleTabChange = useCallback(
+		(tabId: string) => {
+			const newTab = tabConfig.find(tab => tab.id === tabId);
+			if (newTab && newTab.id !== currentTab.id) {
+				setTabHistory(prev => [...prev, newTab.id]);
+				navigate(newTab.path);
+				mainButton.hide();
+			}
+		},
+		[currentTab.id, navigate, mainButton]
+	);
+
+	const handleBackButton = useCallback(() => {
+		if (tabHistory.length > 1) {
+			const newHistory = tabHistory.slice(0, -1);
+			const previousTab = tabConfig.find(tab => tab.id === newHistory[newHistory.length - 1]);
+			if (previousTab) {
+				setTabHistory(newHistory);
+				navigate(previousTab.path);
+			}
+		} else {
+			miniApp.close();
+		}
+	}, [tabHistory, navigate, miniApp]);
+
+	useEffect(() => {
+		backButton.on('click', handleBackButton);
+		return () => {
+			backButton.off('click', handleBackButton);
+		};
+	}, [backButton, handleBackButton]);
+
+	const ActiveComponent = currentTab.component;
 
 	return (
 		<div className={styles.container}>
@@ -47,7 +87,7 @@ const Home: React.FC<{ token: string }> = ({ token }) => {
 					<Tabbar.Item
 						key={id}
 						text={id.charAt(0).toUpperCase() + id.slice(1)}
-						selected={id === currentTab}
+						selected={id === currentTab.id}
 						onClick={() => handleTabChange(id)}
 					>
 						<div style={{ width: 28, height: 28 }}>{icon}</div>
@@ -58,4 +98,4 @@ const Home: React.FC<{ token: string }> = ({ token }) => {
 	);
 };
 
-export default Home;
+export default React.memo(Home);
