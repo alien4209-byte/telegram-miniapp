@@ -1,11 +1,12 @@
 import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { Tabbar } from '@telegram-apps/telegram-ui';
 import { useMainButton, useBackButton, useMiniApp } from '@telegram-apps/sdk-react';
-import styles from '@/pages/Home/Home.module.css';
+import { useGlobalContext } from '@/context/GlobalContext';
+import styles from '@/screens/Home/Home.module.css';
 
-const DateSelection = lazy(() => import('@/pages/DateSelection/DateSelection'));
-const Invite = lazy(() => import('@/pages/Invite/Invite'));
-const Search = lazy(() => import('@/pages/Search/Search'));
+const DateSelection = lazy(() => import('@/screens/DateSelection/DateSelection'));
+const Invite = lazy(() => import('@/screens/Invite/Invite'));
+const Search = lazy(() => import('@/screens/Search/Search'));
 
 const tabConfig = [
 	{ id: 'calendar', icon: '📅', component: DateSelection },
@@ -13,7 +14,8 @@ const tabConfig = [
 	{ id: 'settings', icon: '⚙️', component: Search },
 ];
 
-const Home: React.FC<{ token: string }> = ({ token }) => {
+const Home: React.FC = () => {
+	const { token } = useGlobalContext();
 	const [currentTabId, setCurrentTabId] = useState(tabConfig[0].id);
 	const [tabHistory, setTabHistory] = useState<string[]>([tabConfig[0].id]);
 

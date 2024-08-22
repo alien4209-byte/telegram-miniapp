@@ -11,10 +11,10 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
-import { HomeProps } from '@/types/types';
+import { HomeProps } from '@/types/Types';
 
 import 'react-day-picker/dist/style.css';
-import styles from '@/pages/DateSelection/DateSelection.module.css';
+import styles from '@/screens/DateSelection/DateSelection.module.css';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 

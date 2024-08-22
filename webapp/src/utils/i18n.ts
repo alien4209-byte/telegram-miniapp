@@ -25,7 +25,7 @@ export const getTranslation = (
 	return result;
 };
 
-export const getSupportedLanguageCode = (code: string | undefined): string => {
+export const getSupportedLanguageCode = (code: string | null): string => {
 	const supportedCodes = Object.keys(translations);
 	return code && supportedCodes.includes(code) ? code : 'en';
 };

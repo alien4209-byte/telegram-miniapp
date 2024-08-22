@@ -4,7 +4,7 @@ import { DayPicker } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { getCalendarByRef } from '@/api';
-import { CalendarType, CalendarProps } from '@/types/types';
+import { CalendarType, CalendarProps } from '@/types/Types';
 import 'react-day-picker/dist/style.css';
 
 const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {

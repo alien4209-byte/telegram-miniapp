@@ -5,10 +5,10 @@ import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@teleg
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
-import { HomeProps } from '@/types/types';
+import { HomeProps } from '@/types/Types';
 
 import 'react-day-picker/dist/style.css';
-import styles from '@/pages/Search/Search.module.css';
+import styles from '@/screens/Search/Search.module.css';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 

@@ -13,7 +13,8 @@ import {
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
 import React, { useEffect } from 'react';
-import InitializerPage from '@/pages/InitializerPage/InitializerPage';
+import { GlobalProvider } from '@/context/GlobalContext';
+import InitializerPage from '@/screens/InitializerPage/InitializerPage';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
 
@@ -62,7 +63,9 @@ export const App: React.FC = () => {
 			platform={['macos', 'ios'].includes(lp.platform) ? 'ios' : 'base'}
 		>
 			<QueryClientProvider client={queryClient}>
-				<InitializerPage />
+				<GlobalProvider>
+					<InitializerPage />
+				</GlobalProvider>
 			</QueryClientProvider>
 		</AppRoot>
 	);

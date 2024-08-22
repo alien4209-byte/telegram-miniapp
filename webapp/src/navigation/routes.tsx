@@ -1,6 +1,6 @@
 import React from 'react';
 import { RouteObject } from 'react-router-dom';
-import InitializerPage from '@/pages/InitializerPage/InitializerPage';
+import InitializerPage from '@/screens/InitializerPage/InitializerPage';
 
 export const routes: RouteObject[] = [
 	{

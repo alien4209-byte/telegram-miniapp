@@ -63,5 +63,5 @@ export interface CalendarProps {
 }
 
 export interface HomeProps {
-	token: string;
+	token: string | null;
 }

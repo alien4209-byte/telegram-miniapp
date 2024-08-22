@@ -5,7 +5,7 @@ import {
 	InitMiniAppResponse,
 	SendDatesResponse,
 	CalendarType,
-} from '@/types/types';
+} from '@/types/Types';
 
 export const initMiniApp = async (initData: TelegramInitData): Promise<InitMiniAppResponse> => {
 	return apiFetch<InitMiniAppResponse>('/miniApp/init', {

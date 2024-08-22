@@ -1,5 +1,5 @@
 import { NetworkError, handleApiError } from './apiErrorHandling';
-import { RetryOptions } from '@/types/types';
+import { RetryOptions } from '@/types/Types';
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL as string) || '';
 
