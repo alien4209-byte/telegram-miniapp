@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
-import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@telegram-apps/sdk-react';
+import {
+	useMiniApp,
+	useMainButton,
+	initPopup,
+	initHapticFeedback,
+	useBackButton,
+} from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
 import { HomeProps } from '@/types/types';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 import 'react-day-picker/dist/style.css';
 import styles from '@/pages/DateSelection/DateSelection.module.css';
@@ -16,10 +21,9 @@ const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 const DateSelection: React.FC<HomeProps> = ({ token }) => {
 	const miniapp = useMiniApp();
 	const mainButton = useMainButton();
+	const backButton = useBackButton();
 	const popup = initPopup();
 	const hapticFeedback = initHapticFeedback();
-	const navigate = useNavigate();
-	const location = useLocation();
 	const [selectedDates, setSelectedDates] = useState<Date[]>([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,11 +52,9 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 		if (selectedDates.length > 0 && !isSubmitting) {
 			hapticFeedback.impactOccurred('medium');
 			setIsSubmitting(true);
-			// Push a new state to handle back button for MainButton press
-			navigate(location.pathname, { state: { isSubmitting: true } });
 			dateMutation.mutate(selectedDates);
 		}
-	}, [selectedDates, dateMutation, hapticFeedback, isSubmitting, navigate, location.pathname]);
+	}, [selectedDates, dateMutation, hapticFeedback, isSubmitting]);
 
 	useEffect(() => {
 		miniapp.ready();
@@ -66,25 +68,29 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 			mainButton.hide();
 		}
 
-		// Handle back navigation when isSubmitting
-		if (location.state && (location.state as { isSubmitting: boolean }).isSubmitting) {
-			setIsSubmitting(true);
-		}
-
 		return () => {
 			mainButton.off('click', handleMainButtonClick);
 		};
-	}, [miniapp, selectedDates, isSubmitting, mainButton, handleMainButtonClick, location.state]);
+	}, [miniapp, selectedDates, isSubmitting, mainButton, handleMainButtonClick]);
 
-	// Handle back navigation
 	useEffect(() => {
-		return () => {
+		const handleBackButton = () => {
 			if (isSubmitting) {
-				dateMutation.reset();
 				setIsSubmitting(false);
+				dateMutation.reset();
+			} else {
+				// Handle normal back button behavior
+				// This might involve closing the date selection view or returning to a previous state
+				// Implement according to your app's navigation logic
 			}
 		};
-	}, [isSubmitting, dateMutation]);
+
+		backButton.on('click', handleBackButton);
+
+		return () => {
+			backButton.off('click', handleBackButton);
+		};
+	}, [backButton, isSubmitting, dateMutation]);
 
 	const footer = useMemo(() => {
 		if (selectedDates.length === 0) {
