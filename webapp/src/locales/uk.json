@@ -13,7 +13,8 @@
 		"getStarted": "Почати",
 		"and": "та",
 		"loadFailed": "Ой, щось пішло не так.",
-		"loading": "Завантаження..."
+		"loading": "Завантаження...",
+		"ok": "ОК"
 	},
 	"onboarding": {
 		"title": "Ознайомчі слайди, проведіть пальцем для навігації",
@@ -52,5 +53,14 @@
 		"noProposedDates": "Немає запропонованих дат",
 		"pickProposedDates": "Виберіть із запропонованих дат",
 		"selectedDatesCount": "Ви вибрали {{count}} дат(у)"
+	},
+	"dateSelection": {
+		"title": "Оберіть запропоновані дати",
+		"selectDates": "Обрати дати",
+		"pickDaysPrompt": "Будь ласка, оберіть дні, які ви пропонуєте для зустрічі.",
+		"selectedDates": "Ви обрали {{count}} {{count, plural, one {дату} few {дати} many {дат} other {дат}}}: {{dates}}",
+		"errorTitle": "Помилка",
+		"errorMessage": "{{error}}. Будь ласка, спробуйте ще раз.",
+		"unknownError": "Сталася невідома помилка"
 	}
 }

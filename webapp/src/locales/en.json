@@ -13,7 +13,8 @@
 		"getStarted": "Get Started",
 		"and": "and",
 		"loadFailed": "Oops, something went wrong.",
-		"loading": "Loading..."
+		"loading": "Loading...",
+		"ok": "OK"
 	},
 	"onboarding": {
 		"title": "Onboarding slides, swipe to navigate",
@@ -52,5 +53,14 @@
 		"noProposedDates": "No proposed dates available",
 		"pickProposedDates": "Pick out of proposed dates",
 		"selectedDatesCount": "You have selected {{count}} date(s)"
+	},
+	"dateSelection": {
+		"title": "Pick proposed dates",
+		"selectDates": "Select dates",
+		"pickDaysPrompt": "Please pick the days you propose for the meetup.",
+		"selectedDates": "You picked {{count}} {{count, plural, one {date} other {dates}}}: {{dates}}",
+		"errorTitle": "Error",
+		"errorMessage": "{{error}}. Please try again.",
+		"unknownError": "An unknown error occurred"
 	}
 }

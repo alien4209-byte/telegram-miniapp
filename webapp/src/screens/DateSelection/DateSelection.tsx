@@ -12,13 +12,21 @@ import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
 import { HomeProps } from '@/types/Types';
+import { useLanguage } from '@/utils/LanguageContext';
+import Loading from '@/utils/Loading';
 
 import 'react-day-picker/dist/style.css';
 import styles from '@/screens/DateSelection/DateSelection.module.css';
 
+// Import all locales you need
+import { es, ru, ptBR, uk } from 'date-fns/locale';
+
+const locales: { [key: string]: Locale } = { es, ru, uk, ptBR };
+
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 
 const DateSelection: React.FC<HomeProps> = ({ token }) => {
+	const { t, languageCode } = useLanguage();
 	const miniapp = useMiniApp();
 	const mainButton = useMainButton();
 	const backButton = useBackButton();
@@ -35,11 +43,13 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 			setIsSubmitting(false);
 			popup
 				.open({
-					title: 'Error',
-					message: `${error instanceof Error ? error.message : 'An error occurred'}. Please try again.`,
+					title: t('dateSelection.errorTitle'),
+					message: t('dateSelection.errorMessage', {
+						error: error instanceof Error ? error.message : t('dateSelection.unknownError'),
+					}),
 					buttons: [
-						{ id: 'ok', type: 'default', text: 'OK' },
-						{ id: 'retry', type: 'default', text: 'Retry' },
+						{ id: 'ok', type: 'default', text: t('common.ok') },
+						{ id: 'retry', type: 'default', text: t('common.retry') },
 					],
 				})
 				.then((buttonId: string | null) => {
@@ -60,7 +70,7 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 		miniapp.ready();
 
 		if (selectedDates.length > 0) {
-			mainButton.setText('Select dates').show();
+			mainButton.setText(t('dateSelection.selectDates')).show();
 			mainButton[isSubmitting ? 'showLoader' : 'hideLoader']();
 			mainButton[isSubmitting ? 'disable' : 'enable']();
 			mainButton.on('click', handleMainButtonClick);
@@ -71,7 +81,7 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 		return () => {
 			mainButton.off('click', handleMainButtonClick);
 		};
-	}, [miniapp, selectedDates, isSubmitting, mainButton, handleMainButtonClick]);
+	}, [miniapp, selectedDates, isSubmitting, mainButton, handleMainButtonClick, t]);
 
 	useEffect(() => {
 		const handleBackButton = () => {
@@ -80,8 +90,6 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 				dateMutation.reset();
 			} else {
 				// Handle normal back button behavior
-				// This might involve closing the date selection view or returning to a previous state
-				// Implement according to your app's navigation logic
 			}
 		};
 
@@ -94,20 +102,23 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 
 	const footer = useMemo(() => {
 		if (selectedDates.length === 0) {
-			return <Text>Please pick the days you propose for the meetup.</Text>;
+			return <Text>{t('dateSelection.pickDaysPrompt')}</Text>;
 		}
-		const dateString = selectedDates.map(date => format(date, 'PP')).join(', ');
+		const dateString = selectedDates
+			.map(date => format(date, 'PP', { locale: locales[languageCode] || locales['en'] }))
+			.join(', ');
 		return (
 			<Text>
-				You picked {selectedDates.length} {selectedDates.length > 1 ? 'dates' : 'date'}:{' '}
-				{dateString}
+				{t('dateSelection.selectedDates', { count: selectedDates.length, dates: dateString })}
 			</Text>
 		);
-	}, [selectedDates]);
+	}, [selectedDates, t, languageCode]);
+
+	if (isSubmitting) return <Loading />;
 
 	return (
 		<div className={styles.container}>
-			<h2 className={styles.title}>Pick proposed dates</h2>
+			<h2 className={styles.title}>{t('dateSelection.title')}</h2>
 			<DayPicker
 				mode="multiple"
 				weekStartsOn={1}
@@ -117,6 +128,7 @@ const DateSelection: React.FC<HomeProps> = ({ token }) => {
 				onSelect={days => setSelectedDates(days!)}
 				footer={footer}
 				disabled={isSubmitting}
+				locale={locales[languageCode] || locales['en']}
 			/>
 		</div>
 	);
