@@ -12,8 +12,8 @@ import {
 	useSwipeBehavior,
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
-import React, { useEffect } from 'react';
-import { GlobalProvider, useGlobalContext } from '@/context/GlobalContext';
+import React, { useEffect, useState } from 'react';
+import { GlobalProvider } from '@/context/GlobalContext';
 import { LanguageProvider } from '@/utils/LanguageContext';
 import InitializerPage from '@/screens/InitializerPage/InitializerPage';
 
@@ -22,6 +22,7 @@ import '@telegram-apps/telegram-ui/dist/styles.css';
 const queryClient = new QueryClient();
 
 export const App: React.FC = () => {
+	const [language, setLanguage] = useState('en'); // Default language
 	const lp = useLaunchParams();
 	const miniApp = useMiniApp();
 	const themeParams = useThemeParams();
@@ -29,7 +30,6 @@ export const App: React.FC = () => {
 	const closingBehavior = useClosingBehavior();
 	const backButton = useBackButton();
 	const swipeBehavior = useSwipeBehavior();
-	const { language } = useGlobalContext();
 
 	useEffect(() => {
 		if (viewport) {
@@ -65,7 +65,7 @@ export const App: React.FC = () => {
 			platform={['macos', 'ios'].includes(lp.platform) ? 'ios' : 'base'}
 		>
 			<QueryClientProvider client={queryClient}>
-				<GlobalProvider>
+				<GlobalProvider initialLanguage={language} setLanguage={setLanguage}>
 					<LanguageProvider languageCode={language}>
 						<InitializerPage />
 					</LanguageProvider>

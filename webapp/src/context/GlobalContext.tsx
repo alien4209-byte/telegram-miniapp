@@ -12,9 +12,24 @@ interface GlobalContextType extends GlobalState {
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
-export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface GlobalProviderProps {
+	children: ReactNode;
+	initialLanguage: string;
+	setLanguage: (language: string) => void;
+}
+
+export const GlobalProvider: React.FC<GlobalProviderProps> = ({
+	children,
+	initialLanguage,
+	setLanguage: setAppLanguage,
+}) => {
 	const [token, setToken] = useState<string | null>(null);
-	const [language, setLanguage] = useState<string>('en'); // Default to 'en'
+	const [language, setLanguageState] = useState<string>(initialLanguage);
+
+	const setLanguage = (newLanguage: string) => {
+		setLanguageState(newLanguage);
+		setAppLanguage(newLanguage);
+	};
 
 	return (
 		<GlobalContext.Provider value={{ token, setToken, language, setLanguage }}>
