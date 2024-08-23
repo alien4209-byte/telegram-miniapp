@@ -2,7 +2,6 @@ import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { initMiniApp } from '@/api';
-import Loading from '@/utils/Loading';
 import Calendar from '@/screens/Calendar/Calendar';
 import Home from '@/screens/Home/Home';
 import Onboarding from '@/screens/Onboarding/Onboarding';
@@ -12,6 +11,7 @@ import { getSupportedLanguageCode } from '@/utils/i18n';
 import { TelegramInitData, InitMiniAppResponse } from '@/types/Types';
 import ErrorDisplay from '@/utils/ErrorDisplay';
 import { useGlobalContext } from '@/context/GlobalContext';
+import Loading from '@/utils/Loading';
 
 const INIT_QUERY_KEY = 'initData';
 const ONBOARDING_STATUS_KEY = 'hasCompletedOnboarding';
@@ -30,10 +30,10 @@ const InitializerPage: React.FC = () => {
 
 	const {
 		isLoading: isInitLoading,
-		isError,
-		error,
-		data,
-		refetch,
+		isError: isInitError,
+		error: initError,
+		data: initData,
+		refetch: refetchInit,
 	} = useQuery<InitMiniAppResponse, Error, InitMiniAppResponse, [string, TelegramInitData]>({
 		queryKey: [INIT_QUERY_KEY, { init_data_raw: initDataRaw || '' }],
 		queryFn: ({ queryKey }) => initMiniApp(queryKey[1]),
@@ -45,6 +45,8 @@ const InitializerPage: React.FC = () => {
 	const {
 		data: isOnboardingComplete,
 		isLoading: isStatusLoading,
+		isError: isStatusError,
+		error: statusError,
 		refetch: refetchOnboarding,
 	} = useQuery<boolean, Error>({
 		queryKey: ['onboardingStatus'],
@@ -53,6 +55,7 @@ const InitializerPage: React.FC = () => {
 			return status ?? false;
 		},
 		retry: 1,
+		enabled: !!initData, // Only run this query after initData is available
 	});
 
 	const setOnboardingComplete = useMutation({
@@ -63,42 +66,47 @@ const InitializerPage: React.FC = () => {
 	});
 
 	useEffect(() => {
-		if (data) {
-			setToken(data.token);
-			const newLanguageCode = getSupportedLanguageCode(data.user.language_code);
+		if (initData) {
+			setToken(initData.token);
+			const newLanguageCode = getSupportedLanguageCode(initData.user.language_code);
 			if (newLanguageCode !== languageCode) {
 				setLanguage(newLanguageCode);
 			}
 		}
-	}, [data, setToken, setLanguage, languageCode]);
+	}, [initData, setToken, setLanguage, languageCode]);
 
-	const isLoading = useMemo(
-		() => isInitLoading || isStatusLoading,
-		[isInitLoading, isStatusLoading]
-	);
-
-	const errorMessage = useMemo(() => {
-		if (isError) return error?.message || ERROR_MESSAGES.UNKNOWN;
-		if (!data?.token) return ERROR_MESSAGES.TOKEN_MISSING;
-		return null;
-	}, [isError, error, data]);
-
-	if (isLoading) {
+	// Don't render anything until we have a valid response and all data
+	if (
+		isInitLoading ||
+		isStatusLoading ||
+		!initData ||
+		!token ||
+		isOnboardingComplete === undefined
+	) {
 		return <Loading />;
 	}
 
-	if (errorMessage) {
-		return <ErrorDisplay message={t(errorMessage)} onRetry={refetch} />;
+	// Handle errors only after we're sure the loading is complete
+	if (isInitError || isStatusError) {
+		const errorMessage = isInitError
+			? initError?.message || ERROR_MESSAGES.UNKNOWN
+			: statusError?.message || ERROR_MESSAGES.UNKNOWN;
+		return (
+			<ErrorDisplay
+				message={t(errorMessage)}
+				onRetry={() => {
+					refetchInit();
+					refetchOnboarding();
+				}}
+			/>
+		);
 	}
 
-	if (!token) {
-		return <ErrorDisplay message={t(ERROR_MESSAGES.TOKEN_MISSING)} onRetry={refetch} />;
-	}
-
+	// Render main content only when we have all necessary data
 	return (
 		<>
-			{data?.start_page === 'calendar' && data.start_param ? (
-				<Calendar apiRef={data.start_param} />
+			{initData.start_page === 'calendar' && initData.start_param ? (
+				<Calendar apiRef={initData.start_param} />
 			) : isOnboardingComplete ? (
 				<Home />
 			) : (
