@@ -2,7 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { initMiniApp } from '@/api';
-import LoadingSpinner from '@/utils/LoadingSpinner';
+import Loading from '@/utils/Loading';
 import Calendar from '@/screens/Calendar/Calendar';
 import Home from '@/screens/Home/Home';
 import Onboarding from '@/screens/Onboarding/Onboarding';
@@ -84,7 +84,7 @@ const InitializerPage: React.FC = () => {
 	}, [isError, error, data]);
 
 	if (isLoading) {
-		return <LoadingSpinner />;
+		return <Loading />;
 	}
 
 	if (errorMessage) {
