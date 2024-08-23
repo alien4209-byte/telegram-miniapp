@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-//import LoadingSpinner from '@/utils/LoadingSpinner';
+import LoadingSpinner from '@/utils/LoadingSpinner';
 import { initMiniApp } from '@/api';
 import Calendar from '@/screens/Calendar/Calendar';
 import Home from '@/screens/Home/Home';
@@ -44,7 +44,6 @@ const InitializerPage: React.FC = () => {
 	const {
 		data: isOnboardingComplete,
 		isLoading: isStatusLoading,
-		error: onboardingError,
 		refetch: refetchOnboarding,
 	} = useQuery<boolean, Error>({
 		queryKey: ['onboardingStatus'],
@@ -75,9 +74,9 @@ const InitializerPage: React.FC = () => {
 		return null;
 	}, [isError, error, data]);
 
-	/*if (isInitLoading || isStatusLoading) {
+	if (isInitLoading || isStatusLoading) {
 		return <LoadingSpinner />;
-		}*/
+	}
 
 	if (errorMessage) {
 		return <ErrorDisplay message={errorMessage} onRetry={refetch} />;
