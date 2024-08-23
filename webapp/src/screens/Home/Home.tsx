@@ -1,7 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
-import { Tabbar } from '@telegram-apps/telegram-ui';
 import { useMainButton, useBackButton, useMiniApp } from '@telegram-apps/sdk-react';
-import { useGlobalContext } from '@/context/GlobalContext';
+import { Tabbar, Spinner } from '@telegram-apps/telegram-ui';
 import { useLanguage } from '@/utils/LanguageContext';
 import styles from '@/screens/Home/Home.module.css';
 
@@ -11,7 +10,9 @@ const Search = lazy(() => import('@/screens/Search/Search'));
 
 const Home: React.FC = () => {
 	const { t } = useLanguage();
-	const { token } = useGlobalContext();
+	const mainButton = useMainButton();
+	const backButton = useBackButton();
+	const miniApp = useMiniApp();
 
 	const tabConfig = useMemo(
 		() => [
@@ -25,19 +26,14 @@ const Home: React.FC = () => {
 	const [currentTabId, setCurrentTabId] = useState(tabConfig[0].id);
 	const [tabHistory, setTabHistory] = useState<string[]>([tabConfig[0].id]);
 
-	const mainButton = useMainButton();
-	const backButton = useBackButton();
-	const miniApp = useMiniApp();
-
 	const currentTab = useMemo(
 		() => tabConfig.find(tab => tab.id === currentTabId) || tabConfig[0],
-		[currentTabId]
+		[currentTabId, tabConfig]
 	);
 
 	useEffect(() => {
 		miniApp.ready();
 		backButton.show();
-
 		return () => {
 			backButton.hide();
 		};
@@ -76,20 +72,25 @@ const Home: React.FC = () => {
 	return (
 		<div className={styles.container}>
 			<div className={styles.content}>
-				<Suspense fallback={<div>{t('common.loading')}</div>}>
+				<Suspense
+					fallback={
+						<div className={styles.spinner}>
+							<Spinner size="l" />
+						</div>
+					}
+				>
 					<ActiveComponent />
 				</Suspense>
 			</div>
-
 			<Tabbar className={styles.tabbar}>
 				{tabConfig.map(({ id, icon, label }) => (
 					<Tabbar.Item
 						key={id}
-						text={label}
 						selected={id === currentTabId}
 						onClick={() => handleTabChange(id)}
+						text={label}
 					>
-						<div style={{ width: 28, height: 28 }}>{icon}</div>
+						<span className={styles.tabIcon}>{icon}</span>
 					</Tabbar.Item>
 				))}
 			</Tabbar>

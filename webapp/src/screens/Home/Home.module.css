@@ -1,37 +1,72 @@
 .container {
 	display: flex;
 	flex-direction: column;
-	min-height: 100vh;
+	height: 100vh;
+	background-color: var(--tg-theme-bg-color, #ffffff);
+	color: var(--tg-theme-text-color, #000000);
 }
 
 .content {
 	flex: 1;
 	overflow-y: auto;
-	padding-bottom: 60px; /* Adjust this value based on your tabbar height */
+	padding: 16px 16px 68px;
+	-webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+}
+
+.spinner {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
 }
 
 .tabbar {
-	transition:
-		opacity 0.3s ease-in-out,
-		transform 0.3s ease-in-out;
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	height: 60px; /* Increase this value to make the tabbar higher */
-	display: flex;
-	align-items: center;
+	height: 56px;
 	background-color: var(--tg-theme-bg-color, #ffffff);
-	border-top: 1px solid var(--tg-theme-hint-color, #a8a8a8);
+	border-top: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1));
+	box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.05);
+	transition: transform 0.3s ease;
 }
 
-.tabbarHidden {
-	opacity: 0;
-	transform: translateY(100%);
-	pointer-events: none;
+.tabIcon {
+	font-size: 24px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 28px;
+	margin-bottom: 2px;
 }
 
-.title {
-	margin-bottom: 1rem;
-	font-size: 1.5rem;
+/* Custom styles for Tabbar.Item */
+:global(.tui-tabbar__item) {
+	opacity: 0.6;
+	transition: opacity 0.3s ease;
+}
+
+:global(.tui-tabbar__item--selected) {
+	opacity: 1;
+}
+
+:global(.tui-tabbar__item-content) {
+	font-size: 12px;
+	font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+	.content {
+		padding: 24px 24px 76px;
+	}
+
+	.tabbar {
+		height: 64px;
+	}
+
+	:global(.tui-tabbar__item-content) {
+		font-size: 14px;
+	}
 }
