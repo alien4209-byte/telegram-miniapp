@@ -14,6 +14,7 @@ import {
 import { AppRoot } from '@telegram-apps/telegram-ui';
 import React, { useEffect } from 'react';
 import { GlobalProvider } from '@/context/GlobalContext';
+import { LanguageProvider } from '@/utils/LanguageContext';
 import InitializerPage from '@/screens/InitializerPage/InitializerPage';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
@@ -64,7 +65,9 @@ export const App: React.FC = () => {
 		>
 			<QueryClientProvider client={queryClient}>
 				<GlobalProvider>
-					<InitializerPage />
+					<LanguageProvider languageCode="en">
+						<InitializerPage />
+					</LanguageProvider>
 				</GlobalProvider>
 			</QueryClientProvider>
 		</AppRoot>

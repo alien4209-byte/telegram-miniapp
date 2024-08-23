@@ -2,20 +2,26 @@ import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from
 import { Tabbar } from '@telegram-apps/telegram-ui';
 import { useMainButton, useBackButton, useMiniApp } from '@telegram-apps/sdk-react';
 import { useGlobalContext } from '@/context/GlobalContext';
+import { useLanguage } from '@/utils/LanguageContext';
 import styles from '@/screens/Home/Home.module.css';
 
 const DateSelection = lazy(() => import('@/screens/DateSelection/DateSelection'));
 const Invite = lazy(() => import('@/screens/Invite/Invite'));
 const Search = lazy(() => import('@/screens/Search/Search'));
 
-const tabConfig = [
-	{ id: 'calendar', icon: '📅', component: DateSelection },
-	{ id: 'invite', icon: '🗓️', component: Invite },
-	{ id: 'settings', icon: '⚙️', component: Search },
-];
-
 const Home: React.FC = () => {
 	const { token } = useGlobalContext();
+	const { t } = useLanguage();
+
+	const tabConfig = useMemo(
+		() => [
+			{ id: 'calendar', icon: '📅', component: DateSelection, label: t('home.tabs.calendar') },
+			{ id: 'invite', icon: '🗓️', component: Invite, label: t('home.tabs.invite') },
+			{ id: 'settings', icon: '⚙️', component: Search, label: t('home.tabs.settings') },
+		],
+		[t]
+	);
+
 	const [currentTabId, setCurrentTabId] = useState(tabConfig[0].id);
 	const [tabHistory, setTabHistory] = useState<string[]>([tabConfig[0].id]);
 
@@ -69,15 +75,15 @@ const Home: React.FC = () => {
 
 	return (
 		<div className={styles.container}>
-			<Suspense fallback={<div>Loading...</div>}>
+			<Suspense fallback={<div>{t('common.loading')}</div>}>
 				<ActiveComponent token={token} />
 			</Suspense>
 
 			<Tabbar className={styles.tabbar}>
-				{tabConfig.map(({ id, icon }) => (
+				{tabConfig.map(({ id, icon, label }) => (
 					<Tabbar.Item
 						key={id}
-						text={id.charAt(0).toUpperCase() + id.slice(1)}
+						text={label}
 						selected={id === currentTabId}
 						onClick={() => handleTabChange(id)}
 					>

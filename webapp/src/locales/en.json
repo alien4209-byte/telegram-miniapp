@@ -2,7 +2,8 @@
 	"error": {
 		"initDataUnavailable": "Initialization data is not available",
 		"initDataRawUnavailable": "Raw initialization data is not available",
-		"tokenMissing": "Initialization failed: Token is missing",
+    "initializationFailed": "Failed to initialize the app. Please try again.",
+    "tokenMissing": "Authentication token is missing. Please try again.",
 		"unknown": "An unknown error occurred",
 		"animationLoad": "Failed to load animation. Please try again."
 	},
@@ -11,7 +12,8 @@
 		"next": "Next",
 		"getStarted": "Get Started",
 		"and": "and",
-		"loadFailed": "Oops, something went wrong."
+		"loadFailed": "Oops, something went wrong.",
+		"loading": "Loading..."
 	},
 	"onboarding": {
 		"title": "Onboarding slides, swipe to navigate",
@@ -36,5 +38,11 @@
 		"termsPrefix": "By proceeding you agree to our",
 		"termsLink": "Terms and Conditions",
 		"privacyLink": "Privacy Policy"
-	}
+	},
+ "home": {
+    "tabs": {
+      "calendar": "Calendar",
+      "invite": "Invite",
+      "settings": "Settings"
+    }
 }

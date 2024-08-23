@@ -6,7 +6,7 @@ import Calendar from '@/screens/Calendar/Calendar';
 import Home from '@/screens/Home/Home';
 import Onboarding from '@/screens/Onboarding/Onboarding';
 import { cacheWithCloudStorage } from '@/utils/cacheWithCloudStorage';
-import { LanguageProvider } from '@/utils/LanguageContext';
+import { useLanguage } from '@/utils/LanguageContext';
 import { getSupportedLanguageCode } from '@/utils/i18n';
 import { TelegramInitData, InitMiniAppResponse } from '@/types/Types';
 import ErrorDisplay from '@/utils/ErrorDisplay';
@@ -23,7 +23,8 @@ const ERROR_MESSAGES = {
 const InitializerPage: React.FC = () => {
 	const { initDataRaw } = useLaunchParams();
 	const cloudStorage = useCloudStorage();
-	const { token, setToken, language, setLanguage } = useGlobalContext();
+	const { token, setToken, setLanguage } = useGlobalContext();
+	const { t, languageCode } = useLanguage();
 	const cache = useMemo(() => cacheWithCloudStorage(cloudStorage), [cloudStorage]);
 
 	const {
@@ -63,9 +64,12 @@ const InitializerPage: React.FC = () => {
 	useEffect(() => {
 		if (data) {
 			setToken(data.token);
-			setLanguage(getSupportedLanguageCode(data.user.language_code));
+			const newLanguageCode = getSupportedLanguageCode(data.user.language_code);
+			if (newLanguageCode !== languageCode) {
+				setLanguage(newLanguageCode);
+			}
 		}
-	}, [data, setToken, setLanguage]);
+	}, [data, setToken, setLanguage, languageCode]);
 
 	const errorMessage = useMemo(() => {
 		if (isError) return error?.message || ERROR_MESSAGES.UNKNOWN;
@@ -74,15 +78,15 @@ const InitializerPage: React.FC = () => {
 	}, [isError, error, data]);
 
 	if (errorMessage) {
-		return <ErrorDisplay message={errorMessage} onRetry={refetch} />;
+		return <ErrorDisplay message={t(errorMessage)} onRetry={refetch} />;
 	}
 
 	if (!token) {
-		return <ErrorDisplay message={ERROR_MESSAGES.TOKEN_MISSING} onRetry={refetch} />;
+		return <ErrorDisplay message={t(ERROR_MESSAGES.TOKEN_MISSING)} onRetry={refetch} />;
 	}
 
 	return (
-		<LanguageProvider languageCode={language}>
+		<>
 			{data?.start_page === 'calendar' && data.start_param ? (
 				<Calendar token={token} apiRef={data.start_param} />
 			) : isOnboardingComplete ? (
@@ -90,7 +94,7 @@ const InitializerPage: React.FC = () => {
 			) : (
 				<Onboarding onComplete={() => setOnboardingComplete.mutate(true)} />
 			)}
-		</LanguageProvider>
+		</>
 	);
 };
 
