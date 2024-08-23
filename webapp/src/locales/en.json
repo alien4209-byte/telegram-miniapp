@@ -58,7 +58,7 @@
 		"title": "Pick proposed dates",
 		"selectDates": "Select dates",
 		"pickDaysPrompt": "Please pick the days you propose for the meetup.",
-		"selectedDates": "You picked {{count}} {{count, plural, one {date} other {dates}}}: {{dates}}",
+		"selectedDates": "You picked {{count}} {{count, plural, one: date | other: dates}}: {{dates}}",
 		"errorTitle": "Error",
 		"errorMessage": "{{error}}. Please try again.",
 		"unknownError": "An unknown error occurred"
