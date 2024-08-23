@@ -92,7 +92,7 @@ const InitializerPage: React.FC = () => {
 			{data?.start_page === 'calendar' && data.start_param ? (
 				<Calendar token={token} apiRef={data.start_param} />
 			) : isOnboardingComplete ? (
-				<Home token={token} />
+				<Home />
 			) : (
 				<Onboarding onComplete={() => setOnboardingComplete.mutate(true)} />
 			)}
