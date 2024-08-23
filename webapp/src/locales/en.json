@@ -2,8 +2,8 @@
 	"error": {
 		"initDataUnavailable": "Initialization data is not available",
 		"initDataRawUnavailable": "Raw initialization data is not available",
-    "initializationFailed": "Failed to initialize the app. Please try again.",
-    "tokenMissing": "Authentication token is missing. Please try again.",
+		"initializationFailed": "Failed to initialize the app. Please try again.",
+		"tokenMissing": "Authentication token is missing. Please try again.",
 		"unknown": "An unknown error occurred",
 		"animationLoad": "Failed to load animation. Please try again."
 	},
@@ -39,10 +39,11 @@
 		"termsLink": "Terms and Conditions",
 		"privacyLink": "Privacy Policy"
 	},
- "home": {
-    "tabs": {
-      "calendar": "Calendar",
-      "invite": "Invite",
-      "settings": "Settings"
-    }
+	"home": {
+		"tabs": {
+			"calendar": "Calendar",
+			"invite": "Invite",
+			"settings": "Settings"
+		}
+	}
 }
