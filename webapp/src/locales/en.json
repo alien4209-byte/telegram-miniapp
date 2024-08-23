@@ -52,7 +52,7 @@
 		"errorLoading": "Error loading calendar: {{error}}",
 		"noProposedDates": "No proposed dates available",
 		"pickProposedDates": "Pick out of proposed dates",
-		"selectedDatesCount": "You have selected {{count}} date(s)"
+		"selectedDatesCount": "You have selected {{count}} {{count, plural, one: date | other: dates}}"
 	},
 	"dateSelection": {
 		"title": "Pick proposed dates",

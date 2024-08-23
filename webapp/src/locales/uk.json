@@ -52,7 +52,7 @@
 		"errorLoading": "Помилка завантаження календаря: {{error}}",
 		"noProposedDates": "Немає запропонованих дат",
 		"pickProposedDates": "Виберіть із запропонованих дат",
-		"selectedDatesCount": "Ви вибрали {{count}} дат(у)"
+		"selectedDatesCount": "Ви обрали {{count}} {{count, plural, one: дату | few: дати | many: дат | other: дат}}"
 	},
 	"dateSelection": {
 		"title": "Оберіть запропоновані дати",
