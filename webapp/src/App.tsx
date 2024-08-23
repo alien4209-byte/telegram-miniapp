@@ -13,7 +13,7 @@ import {
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
 import React, { useEffect } from 'react';
-import { GlobalProvider } from '@/context/GlobalContext';
+import { GlobalProvider, useGlobalContext } from '@/context/GlobalContext';
 import { LanguageProvider } from '@/utils/LanguageContext';
 import InitializerPage from '@/screens/InitializerPage/InitializerPage';
 
@@ -29,6 +29,7 @@ export const App: React.FC = () => {
 	const closingBehavior = useClosingBehavior();
 	const backButton = useBackButton();
 	const swipeBehavior = useSwipeBehavior();
+	const { language } = useGlobalContext();
 
 	useEffect(() => {
 		if (viewport) {
@@ -65,7 +66,7 @@ export const App: React.FC = () => {
 		>
 			<QueryClientProvider client={queryClient}>
 				<GlobalProvider>
-					<LanguageProvider languageCode="en">
+					<LanguageProvider languageCode={language}>
 						<InitializerPage />
 					</LanguageProvider>
 				</GlobalProvider>

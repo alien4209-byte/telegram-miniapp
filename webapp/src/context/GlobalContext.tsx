@@ -14,7 +14,7 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 	const [token, setToken] = useState<string | null>(null);
-	const [language, setLanguage] = useState<string>('en');
+	const [language, setLanguage] = useState<string>('en'); // Default to 'en'
 
 	return (
 		<GlobalContext.Provider value={{ token, setToken, language, setLanguage }}>

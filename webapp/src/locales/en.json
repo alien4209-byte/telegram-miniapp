@@ -50,7 +50,7 @@
 		"loading": "Loading calendar...",
 		"errorLoading": "Error loading calendar: {{error}}",
 		"noProposedDates": "No proposed dates available",
-		"pickProposedDates": "Pick out of proposed dates, bla bla",
+		"pickProposedDates": "Pick out of proposed dates",
 		"selectedDatesCount": "You have selected {{count}} date(s)"
 	}
 }
