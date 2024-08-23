@@ -11,7 +11,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { sendDates } from '@/api';
-import { HomeProps } from '@/types/Types';
+import { useGlobalContext } from '@/context/GlobalContext';
 import { useLanguage } from '@/utils/LanguageContext';
 import Loading from '@/utils/Loading';
 
@@ -25,8 +25,9 @@ const locales: { [key: string]: Locale } = { es, ru, uk, ptBR };
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 
-const DateSelection: React.FC<HomeProps> = ({ token }) => {
+const DateSelection: React.FC = () => {
 	const { t, languageCode } = useLanguage();
+	const { token } = useGlobalContext();
 	const miniapp = useMiniApp();
 	const mainButton = useMainButton();
 	const backButton = useBackButton();
