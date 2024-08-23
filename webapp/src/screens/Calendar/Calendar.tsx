@@ -11,6 +11,7 @@ import 'react-day-picker/dist/style.css';
 
 // Import all locales you need
 import { es, ru, ptBR, uk } from 'date-fns/locale';
+import Loading from '@/utils/Loading';
 
 const locales: { [key: string]: Locale } = { es, ru, uk, ptBR };
 
@@ -34,7 +35,7 @@ const Calendar: React.FC<CalendarProps> = ({ apiRef }) => {
 		miniapp.ready();
 	}, [miniapp]);
 
-	if (isLoading) return <Text>{t('calendar.loading')}</Text>;
+	if (isLoading) return <Loading />;
 	if (error) return <Text color="red">{t('calendar.errorLoading', { error: error.message })}</Text>;
 	if (!enabledDates.length) return <Text>{t('calendar.noProposedDates')}</Text>;
 
