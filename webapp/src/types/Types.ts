@@ -60,7 +60,3 @@ export interface CalendarType {
 export interface CalendarProps {
 	apiRef: string;
 }
-
-export interface HomeProps {
-	token: string | null;
-}

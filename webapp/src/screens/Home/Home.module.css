@@ -4,6 +4,12 @@
 	min-height: 100vh;
 }
 
+.content {
+	flex: 1;
+	overflow-y: auto;
+	padding-bottom: 60px; /* Adjust this value based on your tabbar height */
+}
+
 .tabbar {
 	transition:
 		opacity 0.3s ease-in-out,
@@ -12,6 +18,11 @@
 	bottom: 0;
 	left: 0;
 	right: 0;
+	height: 60px; /* Increase this value to make the tabbar higher */
+	display: flex;
+	align-items: center;
+	background-color: var(--tg-theme-bg-color, #ffffff);
+	border-top: 1px solid var(--tg-theme-hint-color, #a8a8a8);
 }
 
 .tabbarHidden {

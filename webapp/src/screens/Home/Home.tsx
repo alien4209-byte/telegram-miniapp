@@ -10,8 +10,8 @@ const Invite = lazy(() => import('@/screens/Invite/Invite'));
 const Search = lazy(() => import('@/screens/Search/Search'));
 
 const Home: React.FC = () => {
-	const { token } = useGlobalContext();
 	const { t } = useLanguage();
+	const { token } = useGlobalContext();
 
 	const tabConfig = useMemo(
 		() => [
@@ -75,9 +75,11 @@ const Home: React.FC = () => {
 
 	return (
 		<div className={styles.container}>
-			<Suspense fallback={<div>{t('common.loading')}</div>}>
-				<ActiveComponent token={token} />
-			</Suspense>
+			<div className={styles.content}>
+				<Suspense fallback={<div>{t('common.loading')}</div>}>
+					<ActiveComponent />
+				</Suspense>
+			</div>
 
 			<Tabbar className={styles.tabbar}>
 				{tabConfig.map(({ id, icon, label }) => (
