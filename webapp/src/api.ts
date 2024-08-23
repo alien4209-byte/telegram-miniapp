@@ -24,7 +24,7 @@ export const getMe = async (token: string): Promise<{ user: User }> => {
 };
 
 export const getCalendarByRef = async (
-	token: string,
+	token: string | null,
 	ref: string
 ): Promise<{ calendar: CalendarType }> => {
 	return apiFetch<{ calendar: CalendarType }>(`/miniApp/calendar/${ref}`, {
@@ -32,7 +32,10 @@ export const getCalendarByRef = async (
 	});
 };
 
-export const sendDates = async (token: string, dates: string[]): Promise<SendDatesResponse> => {
+export const sendDates = async (
+	token: string | null,
+	dates: string[]
+): Promise<SendDatesResponse> => {
 	return apiFetch<SendDatesResponse>('/miniApp/dates', {
 		method: 'POST',
 		headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },

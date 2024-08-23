@@ -31,7 +31,7 @@ export interface User {
 }
 
 export interface InitMiniAppResponse {
-	token: string;
+	token: string | null;
 	start_param?: string | null;
 	start_page: StartPage;
 	user: User;
@@ -58,7 +58,6 @@ export interface CalendarType {
 }
 
 export interface CalendarProps {
-	token: string;
 	apiRef: string;
 }
 

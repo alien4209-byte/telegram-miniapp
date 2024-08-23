@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { initMiniApp } from '@/api';
+import LoadingSpinner from '@/utils/LoadingSpinner';
 import Calendar from '@/screens/Calendar/Calendar';
 import Home from '@/screens/Home/Home';
 import Onboarding from '@/screens/Onboarding/Onboarding';
@@ -71,11 +72,20 @@ const InitializerPage: React.FC = () => {
 		}
 	}, [data, setToken, setLanguage, languageCode]);
 
+	const isLoading = useMemo(
+		() => isInitLoading || isStatusLoading,
+		[isInitLoading, isStatusLoading]
+	);
+
 	const errorMessage = useMemo(() => {
 		if (isError) return error?.message || ERROR_MESSAGES.UNKNOWN;
 		if (!data?.token) return ERROR_MESSAGES.TOKEN_MISSING;
 		return null;
 	}, [isError, error, data]);
+
+	if (isLoading) {
+		return <LoadingSpinner />;
+	}
 
 	if (errorMessage) {
 		return <ErrorDisplay message={t(errorMessage)} onRetry={refetch} />;
@@ -88,7 +98,7 @@ const InitializerPage: React.FC = () => {
 	return (
 		<>
 			{data?.start_page === 'calendar' && data.start_param ? (
-				<Calendar token={token} apiRef={data.start_param} />
+				<Calendar apiRef={data.start_param} />
 			) : isOnboardingComplete ? (
 				<Home />
 			) : (

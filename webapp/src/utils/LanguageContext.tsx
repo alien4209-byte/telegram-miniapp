@@ -3,7 +3,7 @@ import { getTranslation } from '@/utils/i18n';
 
 interface LanguageContextType {
 	languageCode: string;
-	t: (key: string, fallback?: string) => string;
+	t: (key: string, variables?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -12,7 +12,17 @@ export const LanguageProvider: React.FC<{ languageCode: string; children: ReactN
 	languageCode,
 	children,
 }) => {
-	const t = (key: string, fallback?: string) => getTranslation(languageCode, key, fallback);
+	const t = (key: string, variables?: Record<string, string | number>): string => {
+		let translation = getTranslation(languageCode, key);
+
+		if (variables) {
+			Object.entries(variables).forEach(([varKey, varValue]) => {
+				translation = translation.replace(`{{${varKey}}}`, String(varValue));
+			});
+		}
+
+		return translation;
+	};
 
 	return (
 		<LanguageContext.Provider value={{ languageCode, t }}>{children}</LanguageContext.Provider>

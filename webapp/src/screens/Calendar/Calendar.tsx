@@ -4,14 +4,24 @@ import { DayPicker } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
 import { getCalendarByRef } from '@/api';
+import { useLanguage } from '@/utils/LanguageContext';
+import { useGlobalContext } from '@/context/GlobalContext';
 import { CalendarType, CalendarProps } from '@/types/Types';
 import 'react-day-picker/dist/style.css';
 
-const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
+// Import all locales you need
+import { es, ru, ptBR, uk } from 'date-fns/locale';
+
+const locales: { [key: string]: Locale } = { es, ru, uk, ptBR };
+
+const Calendar: React.FC<CalendarProps> = ({ apiRef }) => {
 	const miniapp = useMiniApp();
-	const { data, error } = useQuery<{ calendar: CalendarType }, Error>({
+	const { t, languageCode } = useLanguage();
+	const { token } = useGlobalContext();
+	const { data, error, isLoading } = useQuery<{ calendar: CalendarType }, Error>({
 		queryKey: ['calendar', apiRef],
 		queryFn: () => getCalendarByRef(token, apiRef),
+		enabled: !!token,
 	});
 
 	const enabledDates = useMemo(() => {
@@ -24,13 +34,15 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 		miniapp.ready();
 	}, [miniapp]);
 
-	if (error) return <Text color="red">Error loading calendar: {error.message}</Text>;
-
-	if (!enabledDates.length) return null;
+	if (isLoading) return <Text>{t('calendar.loading')}</Text>;
+	if (error) return <Text color="red">{t('calendar.errorLoading', { error: error.message })}</Text>;
+	if (!enabledDates.length) return <Text>{t('calendar.noProposedDates')}</Text>;
 
 	return (
 		<div style={{ padding: '20px', maxWidth: '400px', margin: '0 auto' }}>
-			<h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Pick out of proposed dates</h2>
+			<h2 style={{ textAlign: 'center', marginBottom: '20px' }}>
+				{t('calendar.pickProposedDates')}
+			</h2>
 			<DayPicker
 				mode="multiple"
 				weekStartsOn={1}
@@ -47,7 +59,11 @@ const Calendar: React.FC<CalendarProps> = ({ token, apiRef }) => {
 						borderRadius: '50%',
 					},
 				}}
+				locale={locales[languageCode] || locales['en']}
 			/>
+			{selectedDates.length > 0 && (
+				<Text>{t('calendar.selectedDatesCount', { count: selectedDates.length })}</Text>
+			)}
 		</div>
 	);
 };
