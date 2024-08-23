@@ -9,6 +9,18 @@ export interface RetryOptions {
 	retryOn: (error: Error) => boolean;
 }
 
+export interface APIErrorResponse {
+	message: string;
+	code?: string;
+	errors?: Record<string, string[]>;
+}
+
+export interface RetryOptions {
+	maxRetries: number;
+	retryDelay: number;
+	retryOn: (error: Error) => boolean;
+}
+
 export interface TelegramInitData {
 	init_data_raw: string;
 }
