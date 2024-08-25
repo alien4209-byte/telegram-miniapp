@@ -75,6 +75,14 @@ const InitializerPage: React.FC = () => {
 		}
 	}, [initData, setToken, setLanguage, languageCode]);
 
+	useEffect(() => {
+		if (isInitError || isStatusError) {
+			const error = isInitError ? initError : statusError;
+			const errorMessage = error?.message || ERROR_MESSAGES.UNKNOWN;
+			showBoundary(new Error(t(errorMessage)));
+		}
+	}, [isInitError, isStatusError, initError, statusError, showBoundary, t]);
+
 	// Don't render anything until we have a valid response and all data
 	if (
 		isInitLoading ||
@@ -85,14 +93,6 @@ const InitializerPage: React.FC = () => {
 	) {
 		return <Loading />;
 	}
-
-	useEffect(() => {
-		if (isInitError || isStatusError) {
-			const error = isInitError ? initError : statusError;
-			const errorMessage = error?.message || ERROR_MESSAGES.UNKNOWN;
-			showBoundary(new Error(t(errorMessage)));
-		}
-	}, [isInitError, isStatusError, initError, statusError, showBoundary, t]);
 
 	// Render main content only when we have all necessary data
 	return (
