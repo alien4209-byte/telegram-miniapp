@@ -2,7 +2,7 @@ import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from
 import { useMainButton, useBackButton, useMiniApp } from '@telegram-apps/sdk-react';
 import { Tabbar, Spinner } from '@telegram-apps/telegram-ui';
 import { useLanguage } from '@/utils/LanguageContext';
-import styles from '@/screens/Home/Home.module.css';
+import styles from '@/layouts/Home/Home.module.css';
 
 const DateSelection = lazy(() => import('@/layouts/DateSelection/DateSelection'));
 const Invite = lazy(() => import('@/layouts/Invite/Invite'));
