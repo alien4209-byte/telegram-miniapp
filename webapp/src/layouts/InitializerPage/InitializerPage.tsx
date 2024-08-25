@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useErrorBoundary } from 'react-error-boundary';
 import { initMiniApp } from '@/services/api';
 import Calendar from '@/layouts/Calendar/Calendar';
 import Home from '@/layouts/Home/Home';
@@ -9,7 +10,6 @@ import { cacheWithCloudStorage } from '@/utils/cacheWithCloudStorage';
 import { useLanguage } from '@/utils/LanguageContext';
 import { getSupportedLanguageCode } from '@/utils/i18n';
 import { TelegramInitData, InitMiniAppResponse } from '@/types/Types';
-import ErrorDisplay from '@/utils/ErrorDisplay';
 import { useGlobalContext } from '@/context/GlobalContext';
 import Loading from '@/utils/Loading';
 
@@ -27,13 +27,13 @@ const InitializerPage: React.FC = () => {
 	const { token, setToken, setLanguage } = useGlobalContext();
 	const { t, languageCode } = useLanguage();
 	const cache = useMemo(() => cacheWithCloudStorage(cloudStorage), [cloudStorage]);
+	const { showBoundary } = useErrorBoundary();
 
 	const {
 		isPending: isInitLoading,
 		isError: isInitError,
 		error: initError,
 		data: initData,
-		refetch: refetchInit,
 	} = useQuery<InitMiniAppResponse, Error, InitMiniAppResponse, [string, TelegramInitData]>({
 		queryKey: [INIT_QUERY_KEY, { init_data_raw: initDataRaw || '' }],
 		queryFn: ({ queryKey }) => initMiniApp(queryKey[1]),
@@ -86,21 +86,13 @@ const InitializerPage: React.FC = () => {
 		return <Loading />;
 	}
 
-	// Handle errors only after we're sure the loading is complete
-	if (isInitError || isStatusError) {
-		const errorMessage = isInitError
-			? initError?.message || ERROR_MESSAGES.UNKNOWN
-			: statusError?.message || ERROR_MESSAGES.UNKNOWN;
-		return (
-			<ErrorDisplay
-				message={t(errorMessage)}
-				onRetry={() => {
-					refetchInit();
-					refetchOnboarding();
-				}}
-			/>
-		);
-	}
+	useEffect(() => {
+		if (isInitError || isStatusError) {
+			const error = isInitError ? initError : statusError;
+			const errorMessage = error?.message || ERROR_MESSAGES.UNKNOWN;
+			showBoundary(new Error(t(errorMessage)));
+		}
+	}, [isInitError, isStatusError, initError, statusError, showBoundary, t]);
 
 	// Render main content only when we have all necessary data
 	return (

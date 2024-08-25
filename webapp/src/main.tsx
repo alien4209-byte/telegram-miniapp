@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ErrorBoundary } from 'react-error-boundary';
 import App from '@/App';
 import '@/index.css';
 import { SDKProvider } from '@telegram-apps/sdk-react';
-import ErrorBoundary from '@/ErrorBoundary';
+import ErrorFallback from '@/utils/ErrorFallback';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -12,7 +13,7 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
 	<React.StrictMode>
-		<ErrorBoundary>
+		<ErrorBoundary FallbackComponent={ErrorFallback}>
 			<SDKProvider acceptCustomStyles debug>
 				<App />
 			</SDKProvider>
