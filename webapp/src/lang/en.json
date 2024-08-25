@@ -1,5 +1,6 @@
 {
 	"error": {
+		"unexpected": "An unexpected error occurred",
 		"initDataUnavailable": "Initialization data is not available",
 		"initDataRawUnavailable": "Raw initialization data is not available",
 		"initializationFailed": "Failed to initialize the app. Please try again.",
