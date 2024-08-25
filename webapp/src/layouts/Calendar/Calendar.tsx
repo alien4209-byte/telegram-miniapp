@@ -19,7 +19,7 @@ const Calendar: React.FC<CalendarProps> = ({ apiRef }) => {
 	const miniapp = useMiniApp();
 	const { t, languageCode } = useLanguage();
 	const { token } = useGlobalContext();
-	const { data, error, isLoading } = useQuery<{ calendar: CalendarType }, Error>({
+	const { data, error, isPending } = useQuery<{ calendar: CalendarType }, Error>({
 		queryKey: ['calendar', apiRef],
 		queryFn: () => getCalendarByRef(token, apiRef),
 		enabled: !!token,
@@ -35,7 +35,7 @@ const Calendar: React.FC<CalendarProps> = ({ apiRef }) => {
 		miniapp.ready();
 	}, [miniapp]);
 
-	if (isLoading) return <Loading />;
+	if (isPending) return <Loading />;
 	if (error) return <Text color="red">{t('calendar.errorLoading', { error: error.message })}</Text>;
 	if (!enabledDates.length) return <Text>{t('calendar.noProposedDates')}</Text>;
 

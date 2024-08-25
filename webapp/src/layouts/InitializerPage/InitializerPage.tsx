@@ -29,7 +29,7 @@ const InitializerPage: React.FC = () => {
 	const cache = useMemo(() => cacheWithCloudStorage(cloudStorage), [cloudStorage]);
 
 	const {
-		isLoading: isInitLoading,
+		isPending: isInitLoading,
 		isError: isInitError,
 		error: initError,
 		data: initData,

@@ -19,7 +19,15 @@ import InitializerPage from '@/layouts/InitializerPage/InitializerPage';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: 5 * 60 * 1000,
+			gcTime: 10 * 60 * 1000,
+			refetchOnWindowFocus: false,
+		},
+	},
+});
 
 export const App: React.FC = () => {
 	const [language, setLanguage] = useState('en'); // Default language

@@ -1,8 +1,8 @@
-import en from '../locales/en.json';
-import ru from '../locales/ru.json';
-import uk from '../locales/uk.json';
-import es from '../locales/es.json';
-import ptBR from '../locales/pt-BR.json';
+import en from '../lang/en.json';
+import ru from '../lang/ru.json';
+import uk from '../lang/uk.json';
+import es from '../lang/es.json';
+import ptBR from '../lang/pt-BR.json';
 
 const translations: { [key: string]: any } = { en, ru, uk, es, 'pt-BR': ptBR };
 
