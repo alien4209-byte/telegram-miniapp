@@ -83,7 +83,7 @@ export const App: React.FC = () => {
 						</ErrorBoundary>
 					</LanguageProvider>
 				</GlobalProvider>
-				<ReactQueryDevtools initialIsOpen={false} />
+				<ReactQueryDevtools initialIsOpen={true} />
 			</QueryClientProvider>
 		</AppRoot>
 	);
