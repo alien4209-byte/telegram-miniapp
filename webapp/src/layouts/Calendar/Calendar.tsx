@@ -3,7 +3,7 @@ import { useMiniApp } from '@telegram-apps/sdk-react';
 import { DayPicker } from 'react-day-picker';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
-import { getCalendarByRef } from '@/api';
+import { getCalendarByRef } from '@/services/api';
 import { useLanguage } from '@/utils/LanguageContext';
 import { useGlobalContext } from '@/context/GlobalContext';
 import { CalendarType, CalendarProps } from '@/types/Types';

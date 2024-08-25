@@ -1,10 +1,10 @@
 import React, { useMemo, useEffect } from 'react';
 import { useLaunchParams, useCloudStorage } from '@telegram-apps/sdk-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { initMiniApp } from '@/api';
-import Calendar from '@/screens/Calendar/Calendar';
-import Home from '@/screens/Home/Home';
-import Onboarding from '@/screens/Onboarding/Onboarding';
+import { initMiniApp } from '@/services/api';
+import Calendar from '@/layouts/Calendar/Calendar';
+import Home from '@/layouts/Home/Home';
+import Onboarding from '@/layouts/Onboarding/Onboarding';
 import { cacheWithCloudStorage } from '@/utils/cacheWithCloudStorage';
 import { useLanguage } from '@/utils/LanguageContext';
 import { getSupportedLanguageCode } from '@/utils/i18n';

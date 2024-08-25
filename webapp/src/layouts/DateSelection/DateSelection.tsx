@@ -10,13 +10,13 @@ import {
 } from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
-import { sendDates } from '@/api';
+import { sendDates } from '@/services/api';
 import { useGlobalContext } from '@/context/GlobalContext';
 import { useLanguage } from '@/utils/LanguageContext';
 import Loading from '@/utils/Loading';
 
 import 'react-day-picker/dist/style.css';
-import styles from '@/screens/DateSelection/DateSelection.module.css';
+import styles from '@/layouts/DateSelection/DateSelection.module.css';
 
 // Import all locales you need
 import { es, ru, ptBR, uk } from 'date-fns/locale';

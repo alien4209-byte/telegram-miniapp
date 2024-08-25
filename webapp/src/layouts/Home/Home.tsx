@@ -4,9 +4,9 @@ import { Tabbar, Spinner } from '@telegram-apps/telegram-ui';
 import { useLanguage } from '@/utils/LanguageContext';
 import styles from '@/screens/Home/Home.module.css';
 
-const DateSelection = lazy(() => import('@/screens/DateSelection/DateSelection'));
-const Invite = lazy(() => import('@/screens/Invite/Invite'));
-const Search = lazy(() => import('@/screens/Search/Search'));
+const DateSelection = lazy(() => import('@/layouts/DateSelection/DateSelection'));
+const Invite = lazy(() => import('@/layouts/Invite/Invite'));
+const Search = lazy(() => import('@/layouts/Search/Search'));
 
 const Home: React.FC = () => {
 	const { t } = useLanguage();

@@ -4,11 +4,10 @@ import { DayPicker } from 'react-day-picker';
 import { useMiniApp, useMainButton, initPopup, initHapticFeedback } from '@telegram-apps/sdk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Text } from '@telegram-apps/telegram-ui';
-import { sendDates } from '@/api';
-import { HomeProps } from '@/types/Types';
+import { sendDates } from '@/services/api';
 
 import 'react-day-picker/dist/style.css';
-import styles from '@/screens/Search/Search.module.css';
+import styles from '@/layouts/Search/Search.module.css';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
 

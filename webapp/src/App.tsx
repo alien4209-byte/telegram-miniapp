@@ -15,7 +15,7 @@ import { AppRoot } from '@telegram-apps/telegram-ui';
 import React, { useEffect, useState } from 'react';
 import { GlobalProvider } from '@/context/GlobalContext';
 import { LanguageProvider } from '@/utils/LanguageContext';
-import InitializerPage from '@/screens/InitializerPage/InitializerPage';
+import InitializerPage from '@/layouts/InitializerPage/InitializerPage';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
 
