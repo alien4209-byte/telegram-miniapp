@@ -13,9 +13,11 @@ import {
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
 import React, { useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { GlobalProvider } from '@/context/GlobalContext';
 import { LanguageProvider } from '@/utils/LanguageContext';
 import InitializerPage from '@/layouts/InitializerPage/InitializerPage';
+import ErrorFallback from '@/utils/ErrorFallback';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
 
@@ -75,7 +77,9 @@ export const App: React.FC = () => {
 			<QueryClientProvider client={queryClient}>
 				<GlobalProvider initialLanguage={language} setLanguage={setLanguage}>
 					<LanguageProvider languageCode={language}>
-						<InitializerPage />
+						<ErrorBoundary FallbackComponent={ErrorFallback}>
+							<InitializerPage />
+						</ErrorBoundary>
 					</LanguageProvider>
 				</GlobalProvider>
 			</QueryClientProvider>
