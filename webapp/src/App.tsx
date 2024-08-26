@@ -18,7 +18,7 @@ import { GlobalProvider } from '@/context/GlobalContext';
 import { LanguageProvider } from '@/utils/LanguageContext';
 import InitializerPage from '@/layouts/InitializerPage/InitializerPage';
 import ErrorFallback from '@/utils/ErrorFallback';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+//import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import '@telegram-apps/telegram-ui/dist/styles.css';
 
@@ -83,7 +83,7 @@ export const App: React.FC = () => {
 						</ErrorBoundary>
 					</LanguageProvider>
 				</GlobalProvider>
-				<ReactQueryDevtools initialIsOpen={true} />
+				{/* <ReactQueryDevtools initialIsOpen={false} /> */}
 			</QueryClientProvider>
 		</AppRoot>
 	);
