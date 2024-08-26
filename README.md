@@ -1,5 +1,7 @@
 # Scaffolding for Telegram Bot with Mini App running in CloudFlare
 
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Acceptto/telegram-miniapp-scaffold)
+
 ## Introduction
 
 This package is batteries-included package for running [Telegram Bots](https://core.telegram.org/bots) and [Telegram Mini Apps](https://core.telegram.org/bots/webapps) on [CloudFlare Workers Platform](https://workers.cloudflare.com/).
