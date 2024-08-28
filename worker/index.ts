@@ -82,11 +82,18 @@ router
 		if (typeof incomingData?.init_data_raw !== 'string') {
 			return error(400, 'Invalid initDataRaw');
 		}
+		console.log('Initdata obj:', incomingData);
+
+		console.log('Initdata', incomingData.init_data_raw);
 
 		const { expected_hash, calculated_hash, data } = await calculateHashes(
 			telegramConfig,
 			incomingData.init_data_raw
 		);
+
+		console.log('expected_hash:', expected_hash);
+
+		console.log('calculated_hash', calculated_hash);
 
 		if (expected_hash !== calculated_hash) {
 			return error(401, 'Unauthorized');
