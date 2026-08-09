@@ -385,4 +385,4 @@ export default {
 		// All other requests go through the router
 		return router.fetch(request, env, ctx);
 	}
-};
+};// force rebuild
