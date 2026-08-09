@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "A Iranian Sans";
+    src: url("./AIranianSans.woff2") format("woff2"),
+        url("./AIranianSans.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
