@@ -1,3 +1,6 @@
+import React, { useEffect, useState } from 'react';
+import './i18n'; // Import i18n
+import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
 	bindMiniAppCSSVars,
@@ -12,7 +15,6 @@ import {
 	useSwipeBehavior,
 } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
-import React, { useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { GlobalProvider } from '@/context/GlobalContext';
 import { LanguageProvider } from '@/utils/LanguageContext';
@@ -33,7 +35,9 @@ const queryClient = new QueryClient({
 });
 
 export const App: React.FC = () => {
-	const [language, setLanguage] = useState('en'); // Default language
+	// ✅ Set default language to Persian ('fa') instead of English
+	const [language, setLanguage] = useState('fa'); // Changed from 'en' to 'fa'
+	
 	const lp = useLaunchParams();
 	const miniApp = useMiniApp();
 	const themeParams = useThemeParams();
@@ -41,6 +45,9 @@ export const App: React.FC = () => {
 	const closingBehavior = useClosingBehavior();
 	const backButton = useBackButton();
 	const swipeBehavior = useSwipeBehavior();
+
+	// ✅ Get translation function
+	const { t } = useTranslation();
 
 	useEffect(() => {
 		if (viewport) {
@@ -76,6 +83,7 @@ export const App: React.FC = () => {
 			platform={['macos', 'ios'].includes(lp.platform) ? 'ios' : 'base'}
 		>
 			<QueryClientProvider client={queryClient}>
+				{/* ✅ Pass Persian language to providers */}
 				<GlobalProvider initialLanguage={language} setLanguage={setLanguage}>
 					<LanguageProvider languageCode={language}>
 						<ErrorBoundary FallbackComponent={ErrorFallback}>

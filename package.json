@@ -11,12 +11,14 @@
 		"commit": "git commit . -m \"$(git diff | sgpt --model gpt-4o --code 'Write concise, informative commit messages: Start with a summary in imperative mood, explain the 'why' behind changes, keep the summary under 50 characters, use bullet points for multiple changes, avoid using the word refactor, instead explain what was done, and reference related issues or tickets. What you write will be passed to git commit -m \"[message]\"')\""
 	},
 	"dependencies": {
+		"@tabledeck/game-room": "^0.1.1",
 		"@vlad-yakovlev/telegram-md": "*",
-		"itty-router": "*"
+		"itty-router": "*",
+		"ws": "^8.21.3"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "*",
 		"typescript": "*",
-		"wrangler": "*"
+		"wrangler": "^3.70.0"
 	}
 }

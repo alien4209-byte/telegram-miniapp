@@ -19,6 +19,10 @@ import {
 
 type ExtendedRequest = IRequest & App;
 
+// 🔒 GROUP RESTRICTION - Only this group ID will be processed
+// ✅ CORRECTED: Added -100 prefix for supergroup
+const ALLOWED_GROUP_ID = -1002500302980;
+
 const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 	base: '/',
 	before: [
@@ -232,6 +236,27 @@ router
 
 			const messageJson = await json<TelegramUpdate>();
 			console.log('messageJson:', JSON.stringify(messageJson));
+
+			// 🔒 GROUP RESTRICTION CHECK - Using correct -100 prefix
+			// Check if the message is from the allowed group
+			const chatId = messageJson.message?.chat?.id || 
+						   messageJson.channel_post?.chat?.id ||
+						   messageJson.callback_query?.message?.chat?.id ||
+						   messageJson.edited_message?.chat?.id;
+
+			if (chatId && chatId !== ALLOWED_GROUP_ID) {
+				console.log(`🔒 Ignoring message from non-allowed chat: ${chatId}`);
+				return 'Ignored: Chat not allowed';
+			}
+
+			// Also check if the message is from a group (negative IDs are groups)
+			if (messageJson.message?.chat?.type === 'group' || messageJson.message?.chat?.type === 'supergroup') {
+				// If it's a group but not the allowed one, ignore
+				if (chatId !== ALLOWED_GROUP_ID) {
+					console.log(`🔒 Ignoring message from non-allowed group: ${chatId}`);
+					return 'Ignored: Group not allowed';
+				}
+			}
 
 			const app: App = {
 				telegramConfig,

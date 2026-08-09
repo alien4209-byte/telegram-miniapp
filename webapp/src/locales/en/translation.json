@@ -1,0 +1,57 @@
+{
+  "game": {
+    "title": "Hokm Game",
+    "waiting": "Waiting for players...",
+    "players": "Players",
+    "trump": "Trump",
+    "hakem": "Hakem",
+    "your_turn": "Your turn",
+    "play_card": "Play card",
+    "wait_for_turn": "Wait for others",
+    "trick": "Trick",
+    "tricks": "Tricks",
+    "winner": "Winner",
+    "team1": "Team 1",
+    "team2": "Team 2",
+    "game_over": "Game Over",
+    "play_again": "Play Again",
+    "select_trump": "Please select trump suit",
+    "trump_selected": "Trump selected",
+    "card_played": "Card played",
+    "trick_won": "Trick won by",
+    "score": "Score"
+  },
+  "cards": {
+    "spades": "♠",
+    "hearts": "♥",
+    "diamonds": "♦",
+    "clubs": "♣",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5",
+    "6": "6",
+    "7": "7",
+    "8": "8",
+    "9": "9",
+    "10": "10",
+    "J": "J",
+    "Q": "Q",
+    "K": "K",
+    "A": "A"
+  },
+  "errors": {
+    "not_your_turn": "It's not your turn!",
+    "invalid_card": "You don't have this card!",
+    "must_follow_suit": "You must follow suit!",
+    "game_full": "Game is full!",
+    "game_not_found": "Game not found!"
+  },
+  "buttons": {
+    "join": "Join Game",
+    "start": "Start Game",
+    "play": "Play",
+    "quit": "Quit",
+    "cancel": "Cancel"
+  }
+}
