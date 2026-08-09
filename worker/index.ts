@@ -20,7 +20,7 @@ import {
 type ExtendedRequest = IRequest & App;
 
 // 🔒 GROUP RESTRICTION - Only this group ID will be processed
-const ALLOWED_GROUP_ID = -1002500302980;
+// const ALLOWED_GROUP_ID = -1002500302980;
 
 const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 	base: '/',
