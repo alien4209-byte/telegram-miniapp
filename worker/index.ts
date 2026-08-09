@@ -20,7 +20,6 @@ import {
 type ExtendedRequest = IRequest & App;
 
 // 🔒 GROUP RESTRICTION - Only this group ID will be processed
-// ✅ CORRECTED: Added -100 prefix for supergroup
 const ALLOWED_GROUP_ID = -1002500302980;
 
 const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
@@ -34,7 +33,6 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 				maxAge: 86400,
 			});
 
-			// Handle preflight requests
 			if (request.method === 'OPTIONS') {
 				return preflight(request);
 			}
@@ -59,7 +57,6 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 				}
 			}
 
-			// Extend the request with our custom App properties
 			Object.assign(request, { telegramConfig, is_localhost, bot_name, env, ctx, corsify });
 		},
 	],
@@ -73,14 +70,15 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 	missing: () => error(404, 'Not Found'),
 	finally: [
 		(response, request) => {
-			// Apply CORS headers to all responses
 			return request.corsify ? request.corsify(response) : response;
 		},
 	],
 });
 
-// 🟢 WEBSOCKET ENDPOINT - Add this BEFORE the other routes
-router.get('/ws', async (request) => {
+// ============================================================
+// 🟢 WEBSOCKET HANDLER - Direct fetch handling (bypasses router)
+// ============================================================
+async function handleWebSocket(request: Request): Promise<Response> {
 	try {
 		const upgradeHeader = request.headers.get('Upgrade');
 		if (!upgradeHeader || upgradeHeader !== 'websocket') {
@@ -105,7 +103,7 @@ router.get('/ws', async (request) => {
 				const data = JSON.parse(event.data);
 				console.log('📩 WebSocket message:', data);
 				
-				// Echo back for now (you'll add game logic here)
+				// Echo back for now
 				server.send(JSON.stringify({
 					type: 'echo',
 					received: data,
@@ -135,8 +133,11 @@ router.get('/ws', async (request) => {
 		console.error('❌ WebSocket error:', error);
 		return new Response('WebSocket error', { status: 500 });
 	}
-});
+}
 
+// ============================================================
+// 🟢 ROUTER ROUTES
+// ============================================================
 router
 	.post('/miniApp/init', async ({ telegramConfig, env, json }) => {
 		const incomingData = await json<IncomingInitData>();
@@ -295,8 +296,6 @@ router
 			const messageJson = await json<TelegramUpdate>();
 			console.log('messageJson:', JSON.stringify(messageJson));
 
-			// 🔒 GROUP RESTRICTION CHECK - Using correct -100 prefix
-			// Check if the message is from the allowed group
 			const chatId = messageJson.message?.chat?.id || 
 						   messageJson.channel_post?.chat?.id ||
 						   messageJson.callback_query?.message?.chat?.id ||
@@ -307,9 +306,7 @@ router
 				return 'Ignored: Chat not allowed';
 			}
 
-			// Also check if the message is from a group (negative IDs are groups)
 			if (messageJson.message?.chat?.type === 'group' || messageJson.message?.chat?.type === 'supergroup') {
-				// If it's a group but not the allowed one, ignore
 				if (chatId !== ALLOWED_GROUP_ID) {
 					console.log(`🔒 Ignoring message from non-allowed group: ${chatId}`);
 					return 'Ignored: Group not allowed';
@@ -338,7 +335,6 @@ router
 		const lastUpdateId = await db.getLatestUpdateId(env.D1_DATABASE);
 		const updates = await getUpdates(telegramConfig, lastUpdateId);
 
-		// Use Cloudflare Workers' ExecutionContext for background processing
 		ctx.waitUntil(
 			(async () => {
 				for (const update of updates.result) {
@@ -374,4 +370,19 @@ router
 		return `Success! Bot Name: https://t.me/${bot_name}. Webhook status: ${JSON.stringify(response)}`;
 	});
 
-export default router;
+// ============================================================
+// 🟢 MAIN EXPORT - Handles WebSocket BEFORE router
+// ============================================================
+export default {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+		const url = new URL(request.url);
+		
+		// 🟢 Handle WebSocket connections DIRECTLY (bypasses router)
+		if (url.pathname === '/ws') {
+			return handleWebSocket(request);
+		}
+		
+		// All other requests go through the router
+		return router.fetch(request, env, ctx);
+	}
+};
