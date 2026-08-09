@@ -79,6 +79,64 @@ const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
 	],
 });
 
+// 🟢 WEBSOCKET ENDPOINT - Add this BEFORE the other routes
+router.get('/ws', async (request) => {
+	try {
+		const upgradeHeader = request.headers.get('Upgrade');
+		if (!upgradeHeader || upgradeHeader !== 'websocket') {
+			return new Response('WebSocket connection expected', { status: 400 });
+		}
+
+		const pair = new WebSocketPair();
+		const [client, server] = Object.values(pair);
+
+		server.accept();
+
+		// Send initial connection message
+		server.send(JSON.stringify({
+			type: 'connected',
+			message: 'Connected to Hokm game server!',
+			timestamp: Date.now()
+		}));
+
+		// Handle incoming messages
+		server.addEventListener('message', (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				console.log('📩 WebSocket message:', data);
+				
+				// Echo back for now (you'll add game logic here)
+				server.send(JSON.stringify({
+					type: 'echo',
+					received: data,
+					timestamp: Date.now()
+				}));
+			} catch (error) {
+				server.send(JSON.stringify({
+					type: 'error',
+					message: 'Invalid JSON format'
+				}));
+			}
+		});
+
+		server.addEventListener('close', () => {
+			console.log('🔌 WebSocket disconnected');
+		});
+
+		server.addEventListener('error', (error) => {
+			console.error('❌ WebSocket error:', error);
+		});
+
+		return new Response(null, {
+			status: 101,
+			webSocket: client,
+		});
+	} catch (error) {
+		console.error('❌ WebSocket error:', error);
+		return new Response('WebSocket error', { status: 500 });
+	}
+});
+
 router
 	.post('/miniApp/init', async ({ telegramConfig, env, json }) => {
 		const incomingData = await json<IncomingInitData>();
