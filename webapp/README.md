@@ -39,16 +39,25 @@ src/
    `VITE_WS_URL` and `VITE_API_URL` under your Pages project → Settings → Environment variables.
    If they're missing there, the build falls back to whatever's hardcoded in `useWebSocket.ts`.
 
-3. **Open the deployed site and check the browser console.** The WebSocket hook now logs every
-   step (`🔌 Connecting...`, `✅ connected`, `❌ disconnected`, `📩 received`, `📤 sent`). If you
-   see `🔌 Connecting to WebSocket: wss://.../ws` but never `✅ WebSocket connected`, the URL or
-   the worker itself is the issue (check the worker's own logs / CORS / that it's actually
-   running). If you don't even see the `🔌` log, the bundle probably failed to build — check
-   the Pages deployment build log for a red/failed step instead.
+3. **You must open the app through Telegram, not a normal browser tab.** This is the most likely
+   cause if you see a brass "must be opened inside Telegram" banner plus an endless
+   "در حال تلاش مجدد برای اتصال..." spinner. Pasting the `*.pages.dev` URL into Chrome/Safari
+   directly means `window.Telegram.WebApp.initData` is empty — there's no real Telegram session
+   — so a backend that validates Telegram-signed `initData` (as this one does, for the group
+   restriction feature) correctly rejects both the `/miniApp/init` call and, if it gates on the
+   returned token, the WebSocket connection too. To test for real:
+   - In [@BotFather](https://t.me/BotFather), run `/mybots` → your bot → **Bot Settings** →
+     **Menu Button** (or **Configure Mini App**), and set the URL to your Pages URL
+     (`https://miniapp-scafolding-2nv.pages.dev`).
+   - Open a chat with your bot inside Telegram (mobile app, desktop app, or web.telegram.org) and
+     tap that menu button — Telegram will inject real `initData` into the WebView.
+   - Alternatively use a direct link: `https://t.me/<your_bot_username>/<app_short_name>`.
 
-4. **The socket now connects immediately** regardless of whether `/miniApp/init` (auth) succeeds
-   — a failed auth call surfaces as a small red banner instead of blocking the whole UI, so you
-   can distinguish "auth broken" from "socket broken."
+4. **Open the deployed site and check the browser console.** The WebSocket hook logs every step
+   (`🔌 Connecting...`, `✅ connected`, `❌ disconnected`, `📩 received`, `📤 sent`). If you see
+   `🔌 Connecting to WebSocket: wss://.../ws` but never `✅ WebSocket connected`, the URL or the
+   worker itself is the issue. If you don't even see the `🔌` log, the bundle probably failed to
+   build — check the Pages deployment build log for a failed step instead.
 
 ## Environment variables
 

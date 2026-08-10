@@ -1,124 +1,204 @@
-import { hmacSha256, hex } from '@/utils/crypto';
-import { CalculateHashesResult } from '@/types/types';
-import { error } from 'itty-router';
+import type { Env } from "./types";
 
-const TELEGRAM_API_BASE_URL = 'https://api.telegram.org/bot';
+// ---------------------------------------------------------------------------
+// Telegram WebApp initData validation
+// Algorithm per https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+//   secret_key = HMAC_SHA256("WebAppData", bot_token)          [note: "WebAppData" is the key, bot_token is the message]
+//   data_check_string = all fields except "hash", sorted by key, joined as "key=value" with "\n"
+//   valid if HMAC_SHA256(secret_key, data_check_string) === hash
+// ---------------------------------------------------------------------------
 
-export type TelegramConfig = {
-	token: string;
-	useTestApi?: boolean;
-};
+async function hmacSha256(key: ArrayBuffer | Uint8Array, message: string): Promise<ArrayBuffer> {
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    key as BufferSource,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  return crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(message));
+}
 
-const getApiUrl = (config: TelegramConfig, method: string): string =>
-	`${TELEGRAM_API_BASE_URL}${config.token}/${config.useTestApi ? 'test/' : ''}${method}`;
+function bufToHex(buf: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
-export const calculateHashes = async (
-	config: TelegramConfig,
-	initData: string
-): Promise<CalculateHashesResult> => {
-	const urlParams = new URLSearchParams(initData);
-	const expected_hash = urlParams.get('hash') || '';
-	urlParams.delete('hash');
-	urlParams.sort();
+export interface TelegramUser {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+}
 
-	const dataCheckString = [...(urlParams as unknown as Iterable<[string, string]>)]
-		.map(([key, value]) => `${key}=${value}`)
-		.join('\n');
+export interface ParsedInitData {
+  user: TelegramUser | null;
+  chat?: { id: number; type: string };
+  authDate: number;
+}
 
-	const data: Record<string, any> = {};
-	urlParams.forEach((value, key) => {
-		if (['user', 'receiver', 'chat'].includes(key)) {
-			try {
-				data[key] = JSON.parse(value);
-			} catch (error) {
-				console.error(`Failed to parse ${key}:`, error);
-				data[key] = value;
-			}
-		} else if (key === 'auth_date') {
-			data[key] = parseInt(value, 10);
-		} else {
-			data[key] = value;
-		}
-	});
+/**
+ * Validates a Telegram Mini App `initData` string against the bot token.
+ * Returns the parsed data on success, or null if the signature is invalid/missing.
+ */
+export async function validateInitData(
+  initData: string,
+  botToken: string,
+  maxAgeSeconds = 86400
+): Promise<ParsedInitData | null> {
+  if (!initData) return null;
 
-	const secretKey = await hmacSha256(config.token, 'WebAppData');
-	const calculated_hash = hex(await hmacSha256(dataCheckString, secretKey));
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  if (!hash) return null;
+  params.delete("hash");
 
-	return {
-		expected_hash,
-		calculated_hash,
-		data: data as CalculateHashesResult['data'],
-	};
-};
+  const dataCheckString = Array.from(params.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\n");
 
-export const getUpdates = async (config: TelegramConfig, lastUpdateId?: number): Promise<any> => {
-	const params: any = lastUpdateId ? { offset: lastUpdateId + 1 } : {};
-	const response = await fetch(getApiUrl(config, 'getUpdates'), {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(params),
-	});
+  const secretKey = await hmacSha256(new TextEncoder().encode("WebAppData"), botToken);
+  const computedHash = bufToHex(await hmacSha256(secretKey, dataCheckString));
 
-	if (!response.ok) {
-		throw error(response.status, 'Failed to get updates from Telegram API');
-	}
-	return response.json();
-};
+  if (computedHash !== hash) return null;
 
-export const sendMessage = async (
-	config: TelegramConfig,
-	chatId: number | string,
-	text: string,
-	parse_mode?: string,
-	reply_to_message_id?: number
-): Promise<any> => {
-	const response = await fetch(getApiUrl(config, 'sendMessage'), {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			chat_id: chatId,
-			text,
-			parse_mode,
-			reply_to_message_id,
-		}),
-	});
+  const authDate = Number(params.get("auth_date") ?? 0);
+  if (maxAgeSeconds > 0 && Date.now() / 1000 - authDate > maxAgeSeconds) {
+    return null; // stale initData, likely replayed
+  }
 
-	if (!response.ok) {
-		throw error(response.status, 'Failed to send message');
-	}
-	return response.json();
-};
+  let user: TelegramUser | null = null;
+  const userRaw = params.get("user");
+  if (userRaw) {
+    try {
+      user = JSON.parse(userRaw) as TelegramUser;
+    } catch {
+      user = null;
+    }
+  }
 
-export const setWebhook = async (
-	config: TelegramConfig,
-	external_url: string,
-	secret_token?: string
-): Promise<any> => {
-	const params: any = { url: external_url };
-	if (secret_token) {
-		params.secret_token = secret_token;
-	}
+  let chat: { id: number; type: string } | undefined;
+  const chatRaw = params.get("chat");
+  if (chatRaw) {
+    try {
+      chat = JSON.parse(chatRaw) as { id: number; type: string };
+    } catch {
+      chat = undefined;
+    }
+  }
 
-	const response = await fetch(getApiUrl(config, 'setWebhook'), {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(params),
-	});
+  return { user, chat, authDate };
+}
 
-	if (!response.ok) {
-		throw error(response.status, 'Failed to set webhook');
-	}
-	return response.json();
-};
+// ---------------------------------------------------------------------------
+// Lightweight signed auth tokens (HMAC, not a full JWT library) for the mini app.
+// Payload: { uid, tid, name, exp }  -> base64url(payload) + "." + base64url(hmac)
+// ---------------------------------------------------------------------------
 
-export const getMe = async (config: TelegramConfig): Promise<any> => {
-	const response = await fetch(getApiUrl(config, 'getMe'), {
-		method: 'GET',
-		headers: { 'Content-Type': 'application/json' },
-	});
+export interface AuthTokenPayload {
+  uid: number; // internal D1 users.id
+  tid: number; // telegram_id
+  name: string;
+  exp: number; // unix seconds
+}
 
-	if (!response.ok) {
-		throw error(response.status, 'Failed to get bot information');
-	}
-	return response.json();
-};
+function base64url(bytes: Uint8Array): string {
+  let str = btoa(String.fromCharCode(...bytes));
+  return str.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function base64urlDecode(str: string): Uint8Array {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/").padEnd(str.length + ((4 - (str.length % 4)) % 4), "=");
+  const bin = atob(padded);
+  return new Uint8Array([...bin].map((c) => c.charCodeAt(0)));
+}
+
+function tokenSecret(env: Env): string {
+  return env.AUTH_TOKEN_SECRET || env.TELEGRAM_BOT_TOKEN;
+}
+
+export async function createAuthToken(env: Env, payload: AuthTokenPayload): Promise<string> {
+  const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
+  const payloadPart = base64url(payloadBytes);
+  const sig = await hmacSha256(new TextEncoder().encode(tokenSecret(env)), payloadPart);
+  const sigPart = base64url(new Uint8Array(sig));
+  return `${payloadPart}.${sigPart}`;
+}
+
+export async function verifyAuthToken(env: Env, token: string): Promise<AuthTokenPayload | null> {
+  const [payloadPart, sigPart] = token.split(".");
+  if (!payloadPart || !sigPart) return null;
+
+  const expectedSig = await hmacSha256(new TextEncoder().encode(tokenSecret(env)), payloadPart);
+  const expectedSigPart = base64url(new Uint8Array(expectedSig));
+  if (expectedSigPart !== sigPart) return null;
+
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(base64urlDecode(payloadPart))) as AuthTokenPayload;
+    if (payload.exp && payload.exp < Date.now() / 1000) return null; // expired
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Telegram Bot API
+// ---------------------------------------------------------------------------
+
+const TELEGRAM_API = "https://api.telegram.org";
+
+export async function sendTelegramMessage(
+  env: Env,
+  chatId: number | string,
+  text: string,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  await fetch(`${TELEGRAM_API}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", ...extra }),
+  });
+}
+
+/** Sends the "open the game" prompt with an inline Web App button. */
+export async function sendOpenGamePrompt(env: Env, chatId: number | string, promptText: string): Promise<void> {
+  await sendTelegramMessage(env, chatId, promptText, {
+    reply_markup: {
+      inline_keyboard: [[{ text: "🎴 باز کردن بازی حکم", web_app: { url: env.FRONTEND_URL } }]],
+    },
+  });
+}
+
+interface TelegramUpdate {
+  message?: {
+    message_id: number;
+    chat: { id: number; type: string };
+    from?: TelegramUser;
+    text?: string;
+  };
+}
+
+/**
+ * Handles a Telegram webhook update. Per the group-restriction requirement, only
+ * messages from ALLOWED_GROUP_ID are processed; everything else is silently ignored
+ * (still returns 200 so Telegram doesn't retry delivery).
+ */
+export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): Promise<void> {
+  const message = update.message;
+  if (!message) return;
+
+  const allowedGroupId = env.ALLOWED_GROUP_ID;
+  if (String(message.chat.id) !== String(allowedGroupId)) {
+    // Not the allowed group (could be a private chat or a different group) — ignore.
+    return;
+  }
+
+  const text = message.text?.trim() ?? "";
+  if (text === "/start" || text === "/hokm" || text === "/play") {
+    await sendOpenGamePrompt(env, message.chat.id, "به بازی حکم خوش آمدید! 🎴");
+  }
+}

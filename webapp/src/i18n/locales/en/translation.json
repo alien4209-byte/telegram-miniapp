@@ -65,6 +65,7 @@
     "invalid_card": "You don't have this card!",
     "must_follow_suit": "You must follow suit!",
     "connection_failed": "Failed to connect to the game server.",
+    "not_in_telegram": "This app must be opened from inside Telegram — use the bot's Web App button.",
     "generic": "Something went wrong. Please try again."
   }
 }

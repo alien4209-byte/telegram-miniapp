@@ -12,11 +12,24 @@ function ConnectionGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { connectionOk, phase } = useGameState();
   const { isReconnecting, authError } = useGameActions();
+  const { isTelegram } = useTelegram();
 
   // NOTE: authError (a failed /miniApp/init call) is intentionally non-blocking now —
   // it's shown as a small banner, not a full-screen wall. The WebSocket connects
   // independently of auth, so the game can still work even if auth is broken/misconfigured.
-  const authBanner = authError ? (
+  //
+  // The single most common cause of "nothing works": this page was opened directly in a
+  // normal browser tab instead of through Telegram. window.Telegram.WebApp.initData is then
+  // empty, so a backend that validates Telegram-signed initData (as this one does, for group
+  // restriction) will correctly reject both the auth call and, if it gates on the token, the
+  // WebSocket too. We detect that case specifically and say so, instead of a generic error.
+  const notInTelegram = !isTelegram && (authError || (isReconnecting && !connectionOk));
+
+  const banner = notInTelegram ? (
+    <div className="bg-brass-600 text-felt-950 text-xs text-center py-2 px-3 font-bold">
+      {t("errors.not_in_telegram")}
+    </div>
+  ) : authError ? (
     <div className="bg-team1/90 text-white text-xs text-center py-1.5 px-3">
       {t("errors.connection_failed")}
     </div>
@@ -25,8 +38,8 @@ function ConnectionGate({ children }: { children: React.ReactNode }) {
   if (!connectionOk && phase === "connecting") {
     return (
       <>
-        {authBanner}
-        <div className="flex flex-col items-center justify-center flex-1 gap-4">
+        {banner}
+        <div className="flex flex-col items-center justify-center flex-1 gap-4 px-6 text-center">
           <div className="w-10 h-10 border-4 border-brass-500/30 border-t-brass-400 rounded-full animate-spin" />
           <p className="text-parchment/70 text-sm">
             {isReconnecting ? t("game.reconnecting") : t("game.connecting_desc")}
@@ -46,7 +59,7 @@ function ConnectionGate({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {authBanner}
+      {banner}
       {children}
     </>
   );

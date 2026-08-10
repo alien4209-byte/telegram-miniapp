@@ -1,388 +1,180 @@
-import { AutoRouter } from 'itty-router/AutoRouter';
-import { error } from 'itty-router/error';
-import { cors } from 'itty-router/cors';
-import type { IRequest } from 'itty-router';
-import { calculateHashes, getUpdates, sendMessage, setWebhook, getMe } from '@/telegram';
-import * as db from '@/db';
-import { processMessage } from '@/messageProcessor';
-import { sendCalendarLink } from '@/messageSender';
-import { generateSecret, sha256, generateReference } from '@/utils/crypto';
-import {
-	App,
-	Env,
-	TelegramUpdate,
-	InitResponse,
-	IncomingInitData,
-	DatesRequest,
-	LanguageTag,
-} from '@/types/types';
+import { Router } from "itty-router";
+import type { Env } from "./types";
+import { createAuthToken, handleTelegramWebhook, validateInitData } from "./telegram";
+import { getOrCreateUser, getLeaderboard } from "./db";
+import { formatMessage } from "./persian-messages";
+export { HokmGameRoom } from "./hokm-game-room";
 
-type ExtendedRequest = IRequest & App;
+const router = Router();
 
-// 🔒 GROUP RESTRICTION - Only this group ID will be processed
-// const ALLOWED_GROUP_ID = -1002500302980;
+// ---------------------------------------------------------------------------
+// CORS
+//
+// BUG FIXED: the previous deployment hardcoded a single Pages *preview* URL
+// (`https://c2979f60.miniapp-scafolding.pages.dev`) as the only allowed origin.
+// Every request from the real production domain (`miniapp-scafolding-2nv.pages.dev`,
+// or any other preview deploy) was silently rejected by the browser's CORS check.
+// This reflects the request's actual Origin back when it matches an allow-list:
+//   - env.FRONTEND_URL exactly
+//   - any `*.<project>.pages.dev` preview subdomain for the same Pages project
+//   - localhost, for local dev
+// ---------------------------------------------------------------------------
 
-const router = AutoRouter<ExtendedRequest, [Env, ExecutionContext]>({
-	base: '/',
-	before: [
-		async (request, env, ctx) => {
-			const { preflight, corsify } = cors({
-				origin: env.FRONTEND_URL,
-				allowMethods: ['GET', 'POST', 'OPTIONS'],
-				allowHeaders: ['Content-Type', 'Authorization'],
-				maxAge: 86400,
-			});
+function isAllowedOrigin(origin: string, env: Env): boolean {
+  if (!origin) return false;
+  if (origin === env.FRONTEND_URL) return true;
+  if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;
 
-			if (request.method === 'OPTIONS') {
-				return preflight(request);
-			}
+  // Match any preview deploy of the same Cloudflare Pages project, e.g.
+  // https://<hash>.miniapp-scafolding.pages.dev, by extracting the project
+  // name from FRONTEND_URL itself instead of hardcoding it.
+  try {
+    const frontendHost = new URL(env.FRONTEND_URL).hostname; // e.g. miniapp-scafolding-2nv.pages.dev
+    const pagesDevMatch = frontendHost.match(/\.pages\.dev$/);
+    if (pagesDevMatch) {
+      const projectSuffix = frontendHost.replace(/^[^.]+\./, ""); // strips the leading subdomain
+      const originHost = new URL(origin).hostname;
+      if (originHost.endsWith(`.${projectSuffix}`) || originHost === projectSuffix) return true;
+    }
+  } catch {
+    /* malformed FRONTEND_URL — fall through to reject */
+  }
 
-			const telegramConfig = {
-				token: env.TELEGRAM_BOT_TOKEN,
-				useTestApi: env.TELEGRAM_USE_TEST_API,
-			};
-			const is_localhost = request.headers.get('Host')?.match(/^(localhost|127\.0\.0\.1)/) !== null;
-
-			let bot_name = await db.getSetting(env.D1_DATABASE, 'bot_name');
-			if (!bot_name) {
-				const me = await getMe(telegramConfig);
-				bot_name = me.result?.username ?? null;
-				if (bot_name) {
-					const result = await db.setSetting(env.D1_DATABASE, 'bot_name', bot_name);
-					if (!result.success) {
-						return error(500, 'Failed to set setting');
-					}
-				} else {
-					return error(500, 'Failed to get bot username');
-				}
-			}
-
-			Object.assign(request, { telegramConfig, is_localhost, bot_name, env, ctx, corsify });
-		},
-	],
-	catch: err => {
-		console.error('Uncaught error:', err);
-		if (err instanceof Error) {
-			return error(500, err.message);
-		}
-		return error(500, 'An unexpected error occurred');
-	},
-	missing: () => error(404, 'Not Found'),
-	finally: [
-		(response, request) => {
-			return request.corsify ? request.corsify(response) : response;
-		},
-	],
-});
-
-// ============================================================
-// 🟢 WEBSOCKET HANDLER - Direct fetch handling (bypasses router)
-// ============================================================
-async function handleWebSocket(request: Request): Promise<Response> {
-	try {
-		const upgradeHeader = request.headers.get('Upgrade');
-		if (!upgradeHeader || upgradeHeader !== 'websocket') {
-			return new Response('WebSocket connection expected', { status: 400 });
-		}
-
-		const pair = new WebSocketPair();
-		const [client, server] = Object.values(pair);
-
-		server.accept();
-
-		// Send initial connection message
-		server.send(JSON.stringify({
-			type: 'connected',
-			message: 'Connected to Hokm game server!',
-			timestamp: Date.now()
-		}));
-
-		// Handle incoming messages
-		server.addEventListener('message', (event) => {
-			try {
-				const data = JSON.parse(event.data);
-				console.log('📩 WebSocket message:', data);
-				
-				// Echo back for now
-				server.send(JSON.stringify({
-					type: 'echo',
-					received: data,
-					timestamp: Date.now()
-				}));
-			} catch (error) {
-				server.send(JSON.stringify({
-					type: 'error',
-					message: 'Invalid JSON format'
-				}));
-			}
-		});
-
-		server.addEventListener('close', () => {
-			console.log('🔌 WebSocket disconnected');
-		});
-
-		server.addEventListener('error', (error) => {
-			console.error('❌ WebSocket error:', error);
-		});
-
-		return new Response(null, {
-			status: 101,
-			webSocket: client,
-		});
-	} catch (error) {
-		console.error('❌ WebSocket error:', error);
-		return new Response('WebSocket error', { status: 500 });
-	}
+  return false;
 }
 
-// ============================================================
-// 🟢 ROUTER ROUTES
-// ============================================================
-router
-	.post('/miniApp/init', async ({ telegramConfig, env, json }) => {
-		const incomingData = await json<IncomingInitData>();
+function corsHeaders(request: Request, env: Env): Record<string, string> {
+  const origin = request.headers.get("Origin") ?? "";
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    Vary: "Origin",
+  };
+  if (isAllowedOrigin(origin, env)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
 
-		if (typeof incomingData?.init_data_raw !== 'string') {
-			return error(400, 'Invalid initDataRaw');
-		}
-		console.log('Initdata obj:', incomingData);
+function json(data: unknown, init: ResponseInit = {}, extraHeaders: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(data), {
+    ...init,
+    headers: { "Content-Type": "application/json; charset=utf-8", ...extraHeaders, ...(init.headers ?? {}) },
+  });
+}
 
-		console.log('Initdata', incomingData.init_data_raw);
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
 
-		const { expected_hash, calculated_hash, data } = await calculateHashes(
-			telegramConfig,
-			incomingData.init_data_raw
-		);
+router.get("/", () => json({ status: "ok", message: "این ربات تلگرام به درستی مستقر شده است." }));
 
-		console.log('expected_hash:', expected_hash);
+router.post("/miniApp/init", async (request: Request, env: Env) => {
+  const cors = corsHeaders(request, env);
+  let body: { initData?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ status: 400, error: "Invalid JSON body" }, { status: 400 }, cors);
+  }
 
-		console.log('calculated_hash', calculated_hash);
+  const initData = body.initData ?? "";
+  const parsed = await validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
+  if (!parsed || !parsed.user) {
+    return json({ status: 400, error: "Invalid initDataRaw" }, { status: 400 }, cors);
+  }
 
-		if (expected_hash !== calculated_hash) {
-			return error(401, 'Unauthorized');
-		}
+  // Group restriction: if the Mini App was launched with chat context attached
+  // (e.g. from a group's attachment menu), enforce it matches the allowed group.
+  if (parsed.chat && String(parsed.chat.id) !== String(env.ALLOWED_GROUP_ID)) {
+    return json({ status: 403, error: "این بازی فقط در گروه مجاز قابل استفاده است." }, { status: 403 }, cors);
+  }
 
-		const currentTime = Math.floor(Date.now() / 1000);
-		if (currentTime - data.auth_date > 600) {
-			return error(400, 'Stale data, please restart the app');
-		}
+  const user = await getOrCreateUser(env, parsed.user);
+  const displayName = [parsed.user.first_name, parsed.user.last_name].filter(Boolean).join(" ") || "بازیکن";
 
-		if (
-			!data.user ||
-			typeof data.user.id !== 'number' ||
-			typeof data.user.first_name !== 'string'
-		) {
-			return error(400, 'Invalid user data: missing id or first_name');
-		}
+  const token = await createAuthToken(env, {
+    uid: user.id,
+    tid: parsed.user.id,
+    name: displayName,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 12, // 12h
+  });
 
-		const token = generateSecret(32);
-		if (!token) {
-			return error(500, 'Failed to generate token');
-		}
+  return json({ token }, { status: 200 }, cors);
+});
 
-		const tokenHash = await sha256(token);
-		if (!tokenHash) {
-			return error(500, 'Failed to generate tokenHash');
-		}
+router.options("*", (request: Request, env: Env) => new Response(null, { status: 204, headers: corsHeaders(request, env) }));
 
-		const result = await db.saveUserAndToken(env.D1_DATABASE, data.user, data.auth_date, tokenHash);
+// WebSocket upgrade: forward to the (single, well-known) game room Durable Object.
+// BUG FIXED: this route previously didn't exist at all, so every connection to
+// `wss://.../ws` was hitting the Worker's default 404 handler instead of ever
+// reaching the Durable Object.
+router.get("/ws", async (request: Request, env: Env) => {
+  if (request.headers.get("Upgrade") !== "websocket") {
+    return json({ status: 400, error: "Expected WebSocket upgrade" }, { status: 400 });
+  }
+  // Single shared room for now — swap idFromName for a `room` query param if you
+  // want multiple concurrent tables instead of one global room.
+  const roomName = new URL(request.url).searchParams.get("room") || "default";
+  const id = env.HOKM_GAME_ROOM.idFromName(roomName);
+  const stub = env.HOKM_GAME_ROOM.get(id);
+  return stub.fetch(request);
+});
 
-		if (!result.success) {
-			return error(500, 'Failed to save user and token to database');
-		}
+router.get("/leaderboard", async (request: Request, env: Env) => {
+  const cors = corsHeaders(request, env);
+  const entries = await getLeaderboard(env);
+  return json({ leaderboard: entries }, { status: 200 }, cors);
+});
 
-		const user = await db.getUser(env.D1_DATABASE, data.user.id);
-		if (user === null) {
-			return error(500, 'Failed to retrieve user after saving');
-		}
+router.post("/telegram/webhook", async (request: Request, env: Env) => {
+  // Optional secret-token check (set via setWebhook's secret_token + TELEGRAM_WEBHOOK_SECRET).
+  if (env.TELEGRAM_WEBHOOK_SECRET) {
+    const provided = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+    if (provided !== env.TELEGRAM_WEBHOOK_SECRET) {
+      return new Response("Forbidden", { status: 403 });
+    }
+  }
 
-		return {
-			token,
-			start_param: data.start_param ?? null,
-			start_page: data.start_param ? 'calendar' : 'home',
-			user,
-		} satisfies InitResponse;
-	})
+  let update: unknown;
+  try {
+    update = await request.json();
+  } catch {
+    return new Response("Bad Request", { status: 400 });
+  }
 
-	.get('/', () => 'This telegram bot is deployed correctly. No user-serviceable parts inside.')
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handleTelegramWebhook(env, update as any);
+  } catch (err) {
+    console.error("Error handling Telegram webhook:", err);
+  }
 
-	.get('/miniApp/me', async ({ env, headers }) => {
-		const suppliedToken = headers.get('Authorization')?.replace('Bearer ', '');
-		if (!suppliedToken) {
-			return error(401, 'Unauthorized: No token provided');
-		}
-		const tokenHash = await sha256(suppliedToken);
-		const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
+  // Always 200 — Telegram retries aggressively on non-2xx responses.
+  return new Response("OK", { status: 200 });
+});
 
-		if (user === null) {
-			return error(401, 'Unauthorized');
-		}
+router.all("*", (request: Request, env: Env) => json({ status: 404, error: formatMessage("game_not_found") }, { status: 404 }, corsHeaders(request, env)));
 
-		return { user };
-	})
+// ---------------------------------------------------------------------------
+// Worker entrypoint
+// ---------------------------------------------------------------------------
 
-	.get('/miniApp/calendar/:ref', async ({ env, params }) => {
-		const { ref } = params;
-		const calendar = await db.getCalendarByRef(env.D1_DATABASE, ref);
-
-		if (calendar === null) {
-			return error(404, 'Calendar not found');
-		}
-
-		return { calendar: JSON.parse(calendar) };
-	})
-
-	.post(
-		'/miniApp/dates',
-		async ({ telegramConfig, env, bot_name, is_localhost, headers, ctx, json }) => {
-			const suppliedToken = headers.get('Authorization')?.replace('Bearer ', '');
-			if (!suppliedToken) {
-				return error(401, 'Unauthorized: No token provided');
-			}
-			const tokenHash = await sha256(suppliedToken);
-			const user = await db.getUserByTokenHash(env.D1_DATABASE, tokenHash);
-
-			if (user === null) {
-				return error(401, 'Unauthorized');
-			}
-
-			const ref = generateReference(8);
-			const { dates } = await json<DatesRequest>();
-
-			if (!dates || dates.length > 100) {
-				return error(400, 'Invalid or too many dates');
-			}
-
-			for (const date of dates) {
-				if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-					return error(400, 'Invalid date format');
-				}
-			}
-
-			const jsonToSave = JSON.stringify({ dates });
-			const result = await db.saveCalendar(env.D1_DATABASE, jsonToSave, ref, user.id);
-			if (!result.success) {
-				return error(500, 'Failed to save calendar');
-			}
-
-			ctx.waitUntil(
-				sendCalendarLink(
-					telegramConfig,
-					user.language_code as LanguageTag,
-					bot_name,
-					ctx,
-					user.telegram_id,
-					user.first_name,
-					ref
-				)
-			);
-
-			return { user };
-		}
-	)
-
-	.post(
-		'/telegramMessage',
-		async ({ env, headers, json, telegramConfig, is_localhost, bot_name, ctx }) => {
-			const telegramProvidedToken = headers.get('X-Telegram-Bot-Api-Secret-Token');
-			const savedToken = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
-			if (savedToken === null) {
-				return error(500, 'Token not found');
-			}
-			if (telegramProvidedToken !== savedToken) {
-				return error(401, 'Unauthorized');
-			}
-
-			const messageJson = await json<TelegramUpdate>();
-			console.log('messageJson:', JSON.stringify(messageJson));
-
-			const chatId = messageJson.message?.chat?.id || 
-						   messageJson.channel_post?.chat?.id ||
-						   messageJson.callback_query?.message?.chat?.id ||
-						   messageJson.edited_message?.chat?.id;
-
-			if (chatId && chatId !== ALLOWED_GROUP_ID) {
-				console.log(`🔒 Ignoring message from non-allowed chat: ${chatId}`);
-				return 'Ignored: Chat not allowed';
-			}
-
-			if (messageJson.message?.chat?.type === 'group' || messageJson.message?.chat?.type === 'supergroup') {
-				if (chatId !== ALLOWED_GROUP_ID) {
-					console.log(`🔒 Ignoring message from non-allowed group: ${chatId}`);
-					return 'Ignored: Group not allowed';
-				}
-			}
-
-			const app: App = {
-				telegramConfig,
-				is_localhost,
-				bot_name,
-				env,
-				ctx,
-			};
-
-			await processMessage(messageJson, app);
-
-			return 'Success';
-		}
-	)
-
-	.get('/updateTelegramMessages', async ({ telegramConfig, env, is_localhost, ctx }) => {
-		if (!is_localhost) {
-			return error(403, 'This request is only supposed to be used locally');
-		}
-
-		const lastUpdateId = await db.getLatestUpdateId(env.D1_DATABASE);
-		const updates = await getUpdates(telegramConfig, lastUpdateId);
-
-		ctx.waitUntil(
-			(async () => {
-				for (const update of updates.result) {
-					await processMessage(update, { env, telegramConfig } as App);
-				}
-			})()
-		);
-
-		return {
-			lastUpdateId,
-			updateCount: updates.result.length,
-		};
-	})
-
-	.post('/init', async ({ telegramConfig, env, bot_name, headers, json }) => {
-		if (headers.get('Authorization') !== `Bearer ${env.INIT_SECRET}`) {
-			return error(401, 'Unauthorized');
-		}
-
-		let token = await db.getSetting(env.D1_DATABASE, 'telegram_security_code');
-
-		if (token === null) {
-			token = crypto.getRandomValues(new Uint8Array(16)).join('');
-			const result = await db.setSetting(env.D1_DATABASE, 'telegram_security_code', token);
-			if (!result.success) {
-				return error(500, 'Failed to set setting');
-			}
-		}
-
-		const { externalUrl } = await json<{ externalUrl: string }>();
-		const response = await setWebhook(telegramConfig, `${externalUrl}/telegramMessage`, token);
-
-		return `Success! Bot Name: https://t.me/${bot_name}. Webhook status: ${JSON.stringify(response)}`;
-	});
-
-// ============================================================
-// 🟢 MAIN EXPORT - Handles WebSocket BEFORE router
-// ============================================================
 export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		const url = new URL(request.url);
-		
-		// 🟢 Handle WebSocket connections DIRECTLY (bypasses router)
-		if (url.pathname === '/ws') {
-			return handleWebSocket(request);
-		}
-		
-		// All other requests go through the router
-		return router.fetch(request, env, ctx);
-	}
-};// force rebuild
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    try {
+      const response: Response = await router.handle(request, env, ctx);
+      // Attach CORS headers to every HTTP (non-WebSocket) response uniformly.
+      if (response.status !== 101) {
+        const cors = corsHeaders(request, env);
+        for (const [key, value] of Object.entries(cors)) {
+          if (!response.headers.has(key)) response.headers.set(key, value);
+        }
+      }
+      return response;
+    } catch (err) {
+      console.error("Unhandled error:", err);
+      return json({ status: 500, error: formatMessage("unknown_error") }, { status: 500 }, corsHeaders(request, env));
+    }
+  },
+};
