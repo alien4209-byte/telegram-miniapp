@@ -27,8 +27,6 @@ on:
       d1_apparent_database_id:
         value: ${{ jobs.deploy.outputs.database_apparent_id }}
         description: The id of the CloudFlare database as determined by its name
-      
-
 
 jobs:
   deploy:
@@ -104,6 +102,12 @@ jobs:
           printf "Your Mini-App URL is ${{ steps.get_pages_url.outputs.url }}, you can now register it with @BotFather if you haven't already.\n\n" >> $GITHUB_STEP_SUMMARY
           printf "Your Worker URL is <https://${{ steps.determine_worker.outputs.name }}.${{ steps.get_subdomain.outputs.subdomain }}>. You don't need to access it manually, it's registered to process the messages using the webhook.\n\n" >> $GITHUB_STEP_SUMMARY
           
+          printf "## ✅ Webhook Status\n\n" >> $GITHUB_STEP_SUMMARY
+          printf "Webhook was set manually via curl command. If you need to reset it, run:\n\n" >> $GITHUB_STEP_SUMMARY
+          printf '```bash\n' >> $GITHUB_STEP_SUMMARY
+          printf 'curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://${{ steps.determine_worker.outputs.name }}.${{ steps.get_subdomain.outputs.subdomain }}/telegram/webhook"\n' >> $GITHUB_STEP_SUMMARY
+          printf '```\n\n' >> $GITHUB_STEP_SUMMARY
+          
           printf "\n\n<details> \n" >> $GITHUB_STEP_SUMMARY
           printf "<summary> 🔍 See all data </summary>\n\n" >> $GITHUB_STEP_SUMMARY
           printf "| Name | Value | Description |\n" >> $GITHUB_STEP_SUMMARY
@@ -122,3 +126,9 @@ jobs:
             printf "## ⚠️ Database ID Warning\n\n" >> $GITHUB_STEP_SUMMARY
             printf "The id of the database used is different from the id in \`wrangler.toml\`. This is probably because you've forked a repository without changing the database id. The deployment scripts will handle it, but the wrangler tool won't. Please update the database id in \`wrangler.toml\` to be \`${{ steps.get_db_id_by_name.outputs.uuid }}\`.\n\n" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          printf "## 🎮 Next Steps\n\n" >> $GITHUB_STEP_SUMMARY
+          printf "1. Add your bot to the group: \`-1002500302980\`\n" >> $GITHUB_STEP_SUMMARY
+          printf "2. Make the bot an **admin**\n" >> $GITHUB_STEP_SUMMARY
+          printf "3. Click the menu button: **بازی حکم**\n" >> $GITHUB_STEP_SUMMARY
+          printf "4. Invite 3 friends and start playing!\n" >> $GITHUB_STEP_SUMMARY
