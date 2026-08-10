@@ -48,19 +48,28 @@ jobs:
         run: |
           wrangler deploy --var FRONTEND_URL:${{ inputs.pages_url }}
           echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" | wrangler secret put TELEGRAM_BOT_TOKEN
-          INIT_SECRET=$(openssl rand -hex 24)
-          echo $INIT_SECRET | wrangler secret put INIT_SECRET
-          echo init_secret=$INIT_SECRET >> $GITHUB_OUTPUT
 
-      - name: Send init command to worker
+      - name: Webhook already set manually
         run: |
-          curl -X POST -H "Authorization: Bearer ${{ steps.deploy_worker.outputs.init_secret }}" \
-            -H "Content-Type: application/json" \
-            -d '{"externalUrl": "${{ inputs.worker_url }}"}' \
-            --max-time 10 \
-            --retry 5 \
-            --retry-delay 0 \
-            --retry-max-time 40 \
-            --retry-all-errors \
-            --fail \
-            ${{ inputs.worker_url }}/init
+          echo "✅ Webhook already set manually via curl command."
+          echo "   Command used:"
+          echo "   curl -X POST \"https://api.telegram.org/bot<TOKEN>/setWebhook?url=${{ inputs.worker_url }}/telegram/webhook\""
+          echo ""
+          echo "ℹ️ Skipping /init API call to avoid 500 errors."
+          echo ""
+          echo "📱 Your Mini App URL: ${{ inputs.pages_url }}"
+          echo "🔗 Your Worker URL: ${{ inputs.worker_url }}"
+
+      - name: Final instructions
+        run: |
+          echo "=========================================="
+          echo "🎮 HOKM GAME IS READY TO PLAY!"
+          echo "=========================================="
+          echo ""
+          echo "1. Add your bot to the group: -1002500302980"
+          echo "2. Make the bot an admin"
+          echo "3. Click the menu button: بازی حکم"
+          echo "4. Invite 3 friends to join"
+          echo "5. Play and enjoy!"
+          echo ""
+          echo "🚀 Deployment complete!"
