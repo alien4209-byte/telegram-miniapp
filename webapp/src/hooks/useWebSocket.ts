@@ -23,48 +23,48 @@ export function useWebSocket({ token, onMessage }: UseWebSocketOptions): UseWebS
 
   const connect = useCallback(() => {
     try {
-      // Add a small delay to ensure the WebView is ready
-      setTimeout(() => {
-        const url = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
-        console.log("🔌 Connecting to WebSocket:", url);
+      const url = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+      console.log("🔌 [1/5] Attempting to connect to:", url);
+      console.log("🔌 [2/5] Token provided:", !!token);
 
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      console.log("🔌 [3/5] WebSocket instance created");
 
-        ws.onopen = () => {
-          console.log("✅ WebSocket connected");
-          setIsConnected(true);
-          setIsReconnecting(false);
-        };
+      ws.onopen = () => {
+        console.log("✅ [4/5] WebSocket OPEN - connection established!");
+        setIsConnected(true);
+        setIsReconnecting(false);
+      };
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log("📩 Received:", data);
-            onMessageRef.current(data);
-          } catch (err) {
-            console.error("❌ Failed to parse message:", err);
-          }
-        };
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("📩 [5/5] Message received:", data);
+          onMessageRef.current(data);
+        } catch (err) {
+          console.error("❌ Failed to parse message:", err);
+        }
+      };
 
-        ws.onclose = (event) => {
-          console.log("❌ WebSocket disconnected", { code: event.code, reason: event.reason });
-          setIsConnected(false);
-          wsRef.current = null;
-          // Reconnect after 3 seconds
-          setTimeout(() => connect(), 3000);
-        };
+      ws.onclose = (event) => {
+        console.log("❌ WebSocket CLOSED", { code: event.code, reason: event.reason, wasClean: event.wasClean });
+        setIsConnected(false);
+        wsRef.current = null;
+        setTimeout(connect, 3000);
+      };
 
-        ws.onerror = (error) => {
-          console.error("❌ WebSocket error:", error);
-          // Try to reconnect on error
-          wsRef.current = null;
-          setTimeout(() => connect(), 3000);
-        };
-      }, 100);
+      ws.onerror = (error) => {
+        console.error("❌ WebSocket ERROR:", error);
+        console.error("❌ Error details:", {
+          type: error.type,
+          target: error.target,
+        });
+        // Don't reconnect here - onclose will handle it
+      };
     } catch (error) {
-      console.error("❌ Failed to create WebSocket:", error);
-      setTimeout(() => connect(), 3000);
+      console.error("❌ [EXCEPTION] Failed to create WebSocket:", error);
+      setTimeout(connect, 3000);
     }
   }, [token]);
 
@@ -84,12 +84,8 @@ export function useWebSocket({ token, onMessage }: UseWebSocketOptions): UseWebS
       console.log("📤 Sent:", msg);
     } else {
       console.warn("⚠️ WebSocket not open, message not sent:", msg);
-      // Try to reconnect if not open
-      if (!isConnected) {
-        connect();
-      }
     }
-  }, [isConnected, connect]);
+  }, []);
 
   return { isConnected, isReconnecting, send };
 }
