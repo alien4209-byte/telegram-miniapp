@@ -184,18 +184,11 @@ interface TelegramUpdate {
 
 /**
  * Handles a Telegram webhook update. Per the group-restriction requirement, only
- * messages from ALLOWED_GROUP_ID are processed; everything else is silently ignored
  * (still returns 200 so Telegram doesn't retry delivery).
  */
 export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): Promise<void> {
   const message = update.message;
   if (!message) return;
-
-  const allowedGroupId = env.ALLOWED_GROUP_ID;
-  if (String(message.chat.id) !== String(allowedGroupId)) {
-    // Not the allowed group (could be a private chat or a different group) — ignore.
-    return;
-  }
 
   const text = message.text?.trim() ?? "";
   if (text === "/start" || text === "/hokm" || text === "/play") {
