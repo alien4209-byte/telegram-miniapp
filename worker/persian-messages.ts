@@ -32,6 +32,7 @@ export const persianMessages = {
   // needed for a coherent bot experience — same {{key}} interpolation style).
   wrong_chat: "این ربات فقط در گروه مجاز کار می‌کند.",
   open_game: "🎴 برای شروع بازی حکم دکمه زیر را بزنید:",
+  need_min_players_for_bots: "برای شروع بازی با ربات حداقل به ۲ بازیکن نیاز است.",
 } as const;
 
 export type PersianMessageKey = keyof typeof persianMessages;

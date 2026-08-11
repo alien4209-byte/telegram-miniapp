@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IncomingMessage, OutgoingMessage } from "../types/game";
 
-const WS_URL = "wss://miniapp-scafolding.leyli4209.workers.dev/ws";
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 interface UseWebSocketOptions {
   token: string | null;
@@ -60,7 +60,7 @@ export function useWebSocket({ token, onMessage }: UseWebSocketOptions): UseWebS
           type: error.type,
           target: error.target,
         });
-        // Don't reconnect here - onclose will handle it
+        setTimeout(connect, 3000);
       };
     } catch (error) {
       console.error("❌ [EXCEPTION] Failed to create WebSocket:", error);

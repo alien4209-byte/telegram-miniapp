@@ -183,8 +183,8 @@ interface TelegramUpdate {
 }
 
 /**
- * Handles a Telegram webhook update. Per the group-restriction requirement, only
- * (still returns 200 so Telegram doesn't retry delivery).
+ * Handles a Telegram webhook update. Group restriction has been removed per
+ * current requirements — the bot now responds in any chat (group or private).
  */
 export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): Promise<void> {
   const message = update.message;

@@ -5,7 +5,9 @@ export interface Env {
   HOKM_GAME_ROOM: DurableObjectNamespace;
   D1_DATABASE: D1Database;
   TELEGRAM_BOT_TOKEN: string;
-  ALLOWED_GROUP_ID: string;
+  // No longer enforced (group restriction was removed), kept optional in case
+  // you want to reintroduce it later.
+  ALLOWED_GROUP_ID?: string;
   FRONTEND_URL: string;
   // Optional: set via `wrangler secret put TELEGRAM_WEBHOOK_SECRET` and configure the same
   // value when registering the webhook (setWebhook's secret_token) to authenticate callbacks.
@@ -30,11 +32,14 @@ export const MAX_PLAYERS = 4;
 export const TRICKS_PER_HAND = 13;
 export const TRICKS_TO_WIN_HAND = 7; // majority of 13
 export const HANDS_TO_WIN_MATCH = 7;
+// Minimum real (non-bot) players before "start with bots" is allowed.
+export const MIN_PLAYERS_TO_START_WITH_BOTS = 2;
 
 export interface RoomPlayer {
   id: string;
   name: string;
   seat: number; // 0..3, assigned in join order; team1 = seats 0 & 2, team2 = seats 1 & 3
+  isBot?: boolean;
 }
 
 export interface GamePlayerState {
@@ -42,6 +47,7 @@ export interface GamePlayerState {
   name: string;
   tricks: number;
   isActive: boolean;
+  isBot?: boolean;
 }
 
 export interface TrickCard {
@@ -70,6 +76,7 @@ export type ClientMessage =
   | { type: "join"; playerName: string }
   | { type: "set_trump"; suit: Suit }
   | { type: "play_card"; card: CardCode }
+  | { type: "start_with_bots" }
   | { type: "leave" };
 
 // ---- WebSocket protocol: Server -> Client (all user-facing text in Persian) ----

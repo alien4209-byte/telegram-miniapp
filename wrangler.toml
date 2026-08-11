@@ -2,14 +2,24 @@ name = "miniapp-scafolding"
 main = "worker/index.ts"
 compatibility_date = "2024-01-01"
 
+# Non-secret configuration. Secrets (bot token, webhook secret, token signing
+# secret) are set separately via `wrangler secret put` — see README — so they
+# never end up committed to source control in this file.
 [vars]
-ALLOWED_GROUP_ID = "-1002500302980"
 FRONTEND_URL = "https://miniapp-scafolding-2nv.pages.dev"
+# ALLOWED_GROUP_ID intentionally omitted — group restriction has been removed.
+# Add it back here (and re-enable the check in worker/telegram.ts) if you want
+# the bot restricted to a specific group again later.
+
+[[durable_objects.bindings]]
+name = "HOKM_GAME_ROOM"
+class_name = "HokmGameRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HokmGameRoom"]
 
 [[d1_databases]]
-binding = "DB"
+binding = "D1_DATABASE"
 database_name = "hokm-db"
 database_id = "f9b01d95-2b55-4787-9664-bb3d59c3f579"
-[[migrations]]
-tag = "v2"
-deleted_classes = ["HokmGameRoom"]

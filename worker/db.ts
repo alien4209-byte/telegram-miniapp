@@ -1,4 +1,5 @@
-import type { Env, ScoreRow, TelegramUser, UserRow } from "./types";
+import type { Env, ScoreRow, UserRow } from "./types";
+import type { TelegramUser } from "./telegram";
 
 /** Finds an existing user by telegram_id, or creates one. Returns the D1 row. */
 export async function getOrCreateUser(env: Env, tgUser: TelegramUser): Promise<UserRow> {
