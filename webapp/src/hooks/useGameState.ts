@@ -5,6 +5,7 @@ import type {
   GameStartedMessage,
   GameState,
   IncomingMessage,
+  LobbyUpdateMessage,
   PlayerJoinedMessage,
   SelectTrumpMessage,
   TrickWonMessage,
@@ -78,6 +79,20 @@ export const useGameState = create<GameStore>()((set, get) => ({
           requiredPlayers: m.requiredPlayers ?? 4,
           phase: "lobby",
         });
+        break;
+      }
+
+      // This is the message type the real backend actually sends (see
+      // broadcastLobby() in hokm-game-room.ts) — "player_joined" above was
+      // never sent by the server, so the lobby counter never updated.
+      case "lobby_update": {
+        const m = msg as LobbyUpdateMessage;
+        set((state) => ({
+          players: m.players.map((p) => ({ id: p.id, name: p.name })),
+          playerCount: m.count,
+          requiredPlayers: m.maxPlayers,
+          phase: state.phase === "connecting" ? "lobby" : state.phase,
+        }));
         break;
       }
 

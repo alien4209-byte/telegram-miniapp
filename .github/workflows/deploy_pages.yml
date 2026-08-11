@@ -35,8 +35,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          VITE_BACKEND_URL: ${{ inputs.worker_url }}
+          VITE_API_URL: ${{ inputs.worker_url }}
         run: |
+          export VITE_WS_URL="$(echo "${VITE_API_URL}" | sed -e 's#^https://#wss://#' -e 's#^http://#ws://#')/ws"
+          echo "Resolved VITE_WS_URL=${VITE_WS_URL}"
           npm install
           npm run build
           wrangler pages project create ${{ inputs.pages_name }} --production-branch main || true

@@ -131,6 +131,15 @@ export interface PlayerJoinedMessage {
   requiredPlayers?: number;
 }
 
+// This is what the actual backend sends on every join/leave while in the lobby
+// (see broadcastLobby() in hokm-game-room.ts).
+export interface LobbyUpdateMessage {
+  type: "lobby_update";
+  players: { id: string; name: string }[];
+  count: number;
+  maxPlayers: number;
+}
+
 export type IncomingMessage =
   | GameStartedMessage
   | SelectTrumpMessage
@@ -141,4 +150,5 @@ export type IncomingMessage =
   | GameEndedMessage
   | ErrorMessage
   | PlayerJoinedMessage
+  | LobbyUpdateMessage
   | { type: string; [key: string]: unknown };

@@ -8,10 +8,12 @@ import type {
   ServerMessage,
   Suit,
 } from "./types";
-import { HANDS_TO_WIN_MATCH, MAX_PLAYERS, MIN_PLAYERS_TO_START_WITH_BOTS, RANKS, SUITS, TRICKS_PER_HAND, TRICKS_TO_WIN_HAND } from "./types";
+import { HANDS_TO_WIN_MATCH, MAX_PLAYERS, MIN_PLAYERS_TO_START_WITH_BOTS, SUITS, TRICKS_PER_HAND, TRICKS_TO_WIN_HAND } from "./types";
 import { formatMessage } from "./persian-messages";
 import { verifyAuthToken } from "./telegram";
 import { recordGameResult, updateUserScore } from "./db";
+import { buildShuffledDeck, isHigher, parseSuit, toPersianDigits } from "./card-utils";
+import { chooseCardToPlay, chooseTrumpSuit } from "./bot-ai";
 
 interface SocketAttachment {
   playerId: string;
@@ -31,69 +33,6 @@ function initialGameState(): GameState {
     scores: { team1: 0, team2: 0 },
     players: [],
   };
-}
-
-// ---- Card helpers (kept local so this file has no runtime deps beyond ./types) ----
-
-const RANK_VALUE: Record<string, number> = RANKS.reduce(
-  (acc, rank, i) => ({ ...acc, [rank]: i }),
-  {} as Record<string, number>
-);
-
-function parseSuit(card: CardCode): Suit {
-  return card.charAt(0) as Suit;
-}
-function parseRank(card: CardCode): string {
-  return card.slice(1);
-}
-
-function buildShuffledDeck(): CardCode[] {
-  const deck: CardCode[] = [];
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      deck.push(`${suit}${rank}`);
-    }
-  }
-  // Fisher-Yates using crypto.getRandomValues for better randomness than Math.random.
-  for (let i = deck.length - 1; i > 0; i--) {
-    const rand = new Uint32Array(1);
-    crypto.getRandomValues(rand);
-    const j = rand[0] % (i + 1);
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
-  return deck;
-}
-
-function pickLowest(cards: CardCode[]): CardCode {
-  return cards.reduce((min, c) => (RANK_VALUE[parseRank(c)] < RANK_VALUE[parseRank(min)] ? c : min));
-}
-
-const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
-function toPersianDigits(n: number): string {
-  return String(n)
-    .split("")
-    .map((d) => PERSIAN_DIGITS[Number(d)] ?? d)
-    .join("");
-}
-
-/** True if `challenger` beats `current` given the trick's lead suit and the trump suit. */
-function isHigher(challenger: CardCode, current: CardCode, leadSuit: Suit, trump: Suit | null): boolean {
-  const cSuit = parseSuit(challenger);
-  const curSuit = parseSuit(current);
-  const cIsTrump = trump !== null && cSuit === trump;
-  const curIsTrump = trump !== null && curSuit === trump;
-
-  if (cIsTrump && !curIsTrump) return true;
-  if (!cIsTrump && curIsTrump) return false;
-  if (cIsTrump && curIsTrump) return RANK_VALUE[parseRank(challenger)] > RANK_VALUE[parseRank(current)];
-
-  const cFollowsLead = cSuit === leadSuit;
-  const curFollowsLead = curSuit === leadSuit;
-  if (cFollowsLead && !curFollowsLead) return true;
-  if (!cFollowsLead && curFollowsLead) return false;
-  if (cFollowsLead && curFollowsLead) return RANK_VALUE[parseRank(challenger)] > RANK_VALUE[parseRank(current)];
-
-  return false; // neither trump nor lead suit — can never win the trick
 }
 
 export class HokmGameRoom {
@@ -177,31 +116,35 @@ export class HokmGameRoom {
     if (!attachment?.playerId) return;
     const playerId = attachment.playerId;
 
-    switch (msg.type) {
-      case "join": {
-        const name = (msg.playerName || attachment.name || "").trim();
-        if (!name) return;
-        ws.serializeAttachment({ ...attachment, name } satisfies SocketAttachment);
-        await this.handleJoin(playerId, name, ws);
-        break;
-      }
-      case "set_trump":
-        await this.setTrump(playerId, msg.suit);
-        break;
-      case "play_card":
-        await this.playCard(playerId, msg.card);
-        break;
-      case "start_with_bots":
-        await this.startWithBots(playerId);
-        break;
-      case "leave":
-        await this.handleDisconnect(playerId);
-        try {
-          ws.close(1000, "left");
-        } catch {
-          /* already closed */
+    try {
+      switch (msg.type) {
+        case "join": {
+          const name = (msg.playerName || attachment.name || "").trim();
+          if (!name) return;
+          ws.serializeAttachment({ ...attachment, name } satisfies SocketAttachment);
+          await this.handleJoin(playerId, name, ws);
+          break;
         }
-        break;
+        case "set_trump":
+          await this.setTrump(playerId, msg.suit);
+          break;
+        case "play_card":
+          await this.playCard(playerId, msg.card);
+          break;
+        case "start_with_bots":
+          await this.startWithBots(playerId);
+          break;
+        case "leave":
+          await this.handleDisconnect(playerId);
+          try {
+            ws.close(1000, "left");
+          } catch {
+            /* already closed */
+          }
+          break;
+      }
+    } catch (err) {
+      console.error("[webSocketMessage] handler threw:", err);
     }
   }
 
@@ -237,6 +180,7 @@ export class HokmGameRoom {
     } else {
       this.players[existingIdx].name = name; // rejoin / rename
     }
+
 
     await this.persist();
     this.broadcastLobby();
@@ -520,30 +464,14 @@ export class HokmGameRoom {
     });
   }
 
-  // ---- Simple bot AI ----
-  // Trump choice: pick the suit the bot holds the most of (maximizes trump control).
-  // Card play: follow suit and win as cheaply as possible; otherwise trump in cheaply
-  // if void of the lead suit; otherwise discard the lowest card. Not a strong AI, but
-  // plays entirely within the rules and isn't a pushover.
+  // ---- Bot AI: seat detection + delegating to pure functions in ./bot-ai ----
 
   private async botChooseTrump(): Promise<void> {
     const seat = this.gameState.hakemIndex;
     const bot = this.players[seat];
     const hand = this.gameState.hands[seat];
-
-    const counts: Record<Suit, number> = { "♠": 0, "♥": 0, "♦": 0, "♣": 0 };
-    for (const card of hand) counts[parseSuit(card)]++;
-
-    let bestSuit: Suit = SUITS[0];
-    let bestCount = -1;
-    for (const suit of SUITS) {
-      if (counts[suit] > bestCount) {
-        bestCount = counts[suit];
-        bestSuit = suit;
-      }
-    }
-
-    await this.setTrump(bot.id, bestSuit);
+    const suit = chooseTrumpSuit(hand);
+    await this.setTrump(bot.id, suit);
   }
 
   private async botPlayCard(seat: number): Promise<void> {
@@ -551,42 +479,7 @@ export class HokmGameRoom {
     const hand = this.gameState.hands[seat];
     if (!bot || hand.length === 0) return;
 
-    const trick = this.gameState.currentTrick;
-    const trump = this.gameState.trumpSuit;
-    let chosen: CardCode;
-
-    if (trick.length === 0) {
-      // Leading the trick: play safe with the lowest card in hand.
-      chosen = pickLowest(hand);
-    } else {
-      const leadSuit = parseSuit(trick[0].card);
-      const followable = hand.filter((c) => parseSuit(c) === leadSuit);
-
-      const currentWinner = (): CardCode => {
-        let winning = trick[0].card;
-        for (const played of trick.slice(1)) {
-          if (isHigher(played.card, winning, leadSuit, trump)) winning = played.card;
-        }
-        return winning;
-      };
-
-      if (followable.length > 0) {
-        const winner = currentWinner();
-        const winners = followable.filter((c) => isHigher(c, winner, leadSuit, trump));
-        chosen = winners.length > 0 ? pickLowest(winners) : pickLowest(followable);
-      } else if (trump) {
-        const trumps = hand.filter((c) => parseSuit(c) === trump);
-        if (trumps.length > 0) {
-          const winner = currentWinner();
-          const winningTrumps = trumps.filter((c) => isHigher(c, winner, leadSuit, trump));
-          chosen = winningTrumps.length > 0 ? pickLowest(winningTrumps) : pickLowest(trumps);
-        } else {
-          chosen = pickLowest(hand);
-        }
-      } else {
-        chosen = pickLowest(hand);
-      }
-    }
+    const chosen = chooseCardToPlay(hand, this.gameState.currentTrick, this.gameState.trumpSuit);
 
     // Reuses playCard's normal validation/broadcast/trick-resolution path — the
     // card chosen above is always legal by construction, so it will pass cleanly.

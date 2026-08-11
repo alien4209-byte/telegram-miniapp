@@ -166,9 +166,12 @@ export async function sendTelegramMessage(
 
 /** Sends the "open the game" prompt with an inline Web App button. */
 export async function sendOpenGamePrompt(env: Env, chatId: number | string, promptText: string): Promise<void> {
+  // Cache-bust so Telegram's WebView always fetches the latest deployed
+  // frontend instead of serving a stale cached bundle from a previous session.
+  const miniAppUrl = `${env.FRONTEND_URL}?v=${Date.now()}`;
   await sendTelegramMessage(env, chatId, promptText, {
     reply_markup: {
-      inline_keyboard: [[{ text: "🎴 باز کردن بازی حکم", web_app: { url: env.FRONTEND_URL } }]],
+      inline_keyboard: [[{ text: "🎴 باز کردن بازی حکم", web_app: { url: miniAppUrl } }]],
     },
   });
 }
